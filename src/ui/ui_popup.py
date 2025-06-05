@@ -3,7 +3,7 @@ from tkinter import ttk
 from tkinter import simpledialog
 import os
 from datetime import datetime
-from ..logic.price import AbyssalDataManager # AbyssalDataManager 재사용
+from ..logic.abyssal_data_manager import AbyssalDataManager # AbyssalDataManager 재사용
 
 class AbyssalResultPopup:
     ABYSSAL_TYPES = [

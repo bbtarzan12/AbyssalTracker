@@ -1,0 +1,7 @@
+streamlit
+pandas
+pystray
+Pillow
+watchdog
+rich
+plotly

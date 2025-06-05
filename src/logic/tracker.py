@@ -10,20 +10,20 @@ from watchdog.events import FileSystemEventHandler
 import tkinter as tk
 from pystray import Icon, Menu, MenuItem
 from PIL import Image # pystray 아이콘에 필요
+import webbrowser # Add webbrowser for opening Streamlit app
 
 from .config_manager import ConfigManager
 from .eve_log import EveLogProcessor
 from ..ui.ui_popup import AbyssalResultPopup
-from .price import AbyssalDataManager, EVEApi, AbyssalPriceAnalyzer
-from ..ui.ui_stats_display import AbyssalStatsDisplayPopup
+from .global_abyssal_data_manager import GlobalAbyssalDataManager
 
 class AbyssalRunTracker:
     def __init__(self, config_manager: ConfigManager, log_processor: EveLogProcessor,
-                 popup_manager: AbyssalResultPopup, data_manager: AbyssalDataManager):
+                 popup_manager: AbyssalResultPopup, global_data_manager: GlobalAbyssalDataManager):
         self.config_manager = config_manager
         self.log_processor = log_processor
         self.popup_manager = popup_manager
-        self.data_manager = data_manager
+        self.global_data_manager = global_data_manager
 
         self.logs_path = self.config_manager.get_logs_path()
         self.character_name = self.config_manager.get_character_name()
@@ -212,10 +212,9 @@ class AbyssalRunTracker:
             print("[PAST RUNS] None")
 
     def _show_stats_from_tray(self, icon, item):
-        print("[DEBUG] _show_stats_from_tray called. Adding 'show_stats' to queue.")
-        # 통계 분석 및 팝업 요청을 큐에 추가
-        self.popup_queue.put({"type": "show_stats"})
-
+        print("[INFO] Streamlit 통계 페이지를 브라우저에서 엽니다.")
+        # Streamlit 앱이 실행 중인지 확인하는 로직 (간단한 포트 체크)
+        webbrowser.open("http://localhost:8501")
 
     def _exit_application(self, icon, item):
         print("[INFO] AbyssalTracker is shutting down.")
@@ -237,60 +236,16 @@ class AbyssalRunTracker:
                     end_time = request["end_time"]
                     try:
                         result = self.popup_manager.show_popup()
-                        self.popup_manager.save_result(start_time, end_time)
-                        print(f"[INFO] Run result saved to CSV.")
+                        # GlobalAbyssalDataManager의 save_abyssal_result를 호출
+                        self.global_data_manager.save_abyssal_result(result, start_time, end_time)
+                        print(f"[INFO] Run result saved to CSV via GlobalAbyssalDataManager.")
                     except Exception as e:
                         print(f"[ERROR] UI/CSV 저장 중 오류: {e}")
                         traceback.print_exc() # 스택 트레이스 출력
-                elif request["type"] == "show_stats":
-                    print("[DEBUG] Handling 'show_stats' request.")
-                    try:
-                        # 팝업을 먼저 띄우고 로딩 메시지 표시
-                        AbyssalStatsDisplayPopup.set_parent_root(self.root)
-                        self.stats_popup = AbyssalStatsDisplayPopup() # 초기에는 데이터 없이 로딩 상태로 생성
-                        print("[DEBUG] AbyssalStatsDisplayPopup initialized with loading state.")
-
-                        # 통계 데이터 로딩을 별도의 스레드에서 비동기적으로 실행
-                        def load_stats_async():
-                            try:
-                                from rich.console import Console
-                                dummy_console = Console(file=open(os.devnull, 'w'))
-                                
-                                eve_api = EVEApi()
-                                data_manager = AbyssalDataManager()
-                                analyzer = AbyssalPriceAnalyzer(eve_api, data_manager, dummy_console)
-                                
-                                print("[DEBUG] Calling analyzer.get_analysis_data() in async thread...")
-                                stats_data = analyzer.get_analysis_data()
-                                print(f"[DEBUG] analyzer.get_analysis_data() returned in async thread: {bool(stats_data)}")
-
-                                # 데이터 로딩 완료 후, 메인 UI 스레드로 업데이트 요청 전달
-                                self.popup_queue.put({"type": "update_stats", "stats_data": stats_data})
-                            except Exception as e:
-                                print(f"[ERROR] 비동기 통계 데이터 로딩 중 오류: {e}")
-                                traceback.print_exc()
-                        
-                        threading.Thread(target=load_stats_async, daemon=True).start()
-
-                    except Exception as e:
-                        print(f"[ERROR] 통계 팝업 초기화 중 오류: {e}")
-                        traceback.print_exc() # 스택 트레이스 출력
-                elif request["type"] == "update_stats":
-                    print("[DEBUG] Handling 'update_stats' request.")
-                    stats_data = request["stats_data"]
-                    if hasattr(self, 'stats_popup') and self.stats_popup.winfo_exists():
-                        if stats_data:
-                            print("[DEBUG] Updating existing AbyssalStatsDisplayPopup with loaded data.")
-                            self.stats_popup.update_content(stats_data)
-                        else:
-                            print("[INFO] 통계 데이터를 불러올 수 없습니다. CSV 파일이 비어있거나 오류가 있습니다.")
-                            # 로딩 메시지를 유지하거나, 오류 메시지로 변경할 수 있습니다.
-                            if hasattr(self.stats_popup, 'loading_label'):
-                                self.stats_popup.loading_label.config(text="데이터 로딩 실패!")
-                    else:
-                        print("[WARNING] 'update_stats' 요청이 왔으나, 팝업 인스턴스가 존재하지 않습니다. 새로 생성합니다.")
-                        AbyssalStatsDisplayPopup.set_parent_root(self.root)
-                        self.stats_popup = AbyssalStatsDisplayPopup(stats_data) # 데이터와 함께 새로 생성
+                elif request["type"] == "info_message":
+                    title = request.get("title", "알림")
+                    message = request.get("message", "")
+                    self.popup_manager.show_info_message(title, message)
         except queue.Empty:
             pass # No items in queue
         finally:
