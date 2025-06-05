@@ -10,7 +10,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'src'
 from src.logic.config_manager import ConfigManager
 from src.logic.eve_log import EveLogProcessor
 from src.ui.ui_popup import AbyssalResultPopup
-from src.logic.global_abyssal_data_manager import GlobalAbyssalDataManager # GlobalAbyssalDataManager 임포트
+from src.logic.eve_api import EVEApi # EVEApi 임포트 추가
+from src.logic.abyssal_data_manager import AbyssalDataManager # AbyssalDataManager 임포트 추가
+from src.logic.abyssal_data_analyzer import AbyssalDataAnalyzer # AbyssalDataAnalyzer 임포트
 from src.logic.tracker import AbyssalRunTracker
 
 streamlit_process = None
@@ -53,14 +55,16 @@ if __name__ == "__main__":
         logs_path=config_manager.get_logs_path(),
         language=config_manager.get_language()
     )
-    global_data_manager = GlobalAbyssalDataManager() # GlobalAbyssalDataManager 인스턴스 생성
-    popup_manager = AbyssalResultPopup(global_data_manager.data_manager) # 기존 data_manager 대신 global_data_manager의 data_manager 사용
+    abyssal_data_manager = AbyssalDataManager() # AbyssalDataManager 인스턴스 생성
+    eve_api = EVEApi() # EVEApi 인스턴스 생성
+    abyssal_data_analyzer = AbyssalDataAnalyzer(eve_api=eve_api, abyssal_data_manager=abyssal_data_manager) # AbyssalDataAnalyzer 인스턴스 생성
+    popup_manager = AbyssalResultPopup(abyssal_data_manager) # AbyssalDataManager 인스턴스 직접 전달
 
     tracker = AbyssalRunTracker(
         config_manager=config_manager,
         log_processor=log_processor,
         popup_manager=popup_manager,
-        global_data_manager=global_data_manager # global_data_manager 인스턴스 직접 전달
+        abyssal_data_analyzer=abyssal_data_analyzer # abyssal_data_analyzer 인스턴스 전달
     )
     
     # AbyssalRunTracker는 시스템 트레이 아이콘을 시작하고 모니터링 루프를 실행합니다.

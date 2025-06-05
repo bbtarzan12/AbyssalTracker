@@ -13,24 +13,25 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from src.logic.abyssal_data_manager import AbyssalDataManager
-from src.logic.global_abyssal_data_manager import GlobalAbyssalDataManager # GlobalAbyssalDataManager 임포트
+from src.logic.eve_api import EVEApi # EVEApi 임포트 추가
+from src.logic.abyssal_data_analyzer import AbyssalDataAnalyzer # AbyssalDataAnalyzer 임포트
 
 def app():
     st.title("📊 어비셜 런 통계")
 
-    # GlobalAbyssalDataManager 인스턴스를 Streamlit 세션 상태에 저장
+    # AbyssalDataAnalyzer 인스턴스를 Streamlit 세션 상태에 저장
     # 이렇게 하면 앱이 리런될 때마다 새로 생성되지 않고 기존 인스턴스를 재사용합니다.
-    if 'global_data_manager' not in st.session_state:
-        st.session_state.global_data_manager = GlobalAbyssalDataManager()
+    if 'abyssal_data_analyzer' not in st.session_state:
+        st.session_state.abyssal_data_analyzer = AbyssalDataAnalyzer(eve_api=EVEApi(), abyssal_data_manager=AbyssalDataManager())
     
-    global_data_manager = st.session_state.global_data_manager
+    abyssal_data_analyzer = st.session_state.abyssal_data_analyzer
 
     # 데이터 로딩 및 분석
     def load_and_analyze_data():
         with st.status("데이터 로딩 및 분석 중... 🚀", expanded=True) as status:
-            # GlobalAbyssalDataManager의 캐시된 데이터 로딩 메서드 호출
-            # status 객체를 _load_all_data_and_analyze 메서드의 status_placeholder 인자로 전달
-            df, daily_stats, overall_stats, item_buy_price_cache = global_data_manager.get_all_data(status_placeholder=status)
+            # AbyssalDataAnalyzer의 데이터 분석 메서드 호출
+            # status 객체를 analyze_data 메서드의 status_placeholder 인자로 전달
+            df, daily_stats, overall_stats, item_buy_price_cache = abyssal_data_analyzer.analyze_data(status_placeholder=status)
             
             if df is None or df.empty:
                 status.update(label="데이터 로딩 및 분석 완료 (데이터 없음) ⚠️", state="complete", expanded=False)
@@ -96,7 +97,7 @@ def app():
                             st.markdown("---")
                             st.markdown("### 📦 획득 아이템")
                             if run['획득 아이템']:
-                                parsed_items = global_data_manager.data_manager.parse_items(run['획득 아이템'])
+                                parsed_items = abyssal_data_analyzer.data_manager.parse_items(run['획득 아이템'])
                                 # 아이템 이름별로 수량과 총 가격을 합산
                                 aggregated_items = {}
                                 for item_name, item_qty in parsed_items:

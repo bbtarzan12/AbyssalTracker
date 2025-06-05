@@ -2,7 +2,7 @@ import os
 import glob
 import re
 import pandas as pd
-import datetime # datetime 모듈 추가
+import datetime
 
 class AbyssalDataManager:
     def __init__(self, data_dir='data'):
@@ -19,14 +19,14 @@ class AbyssalDataManager:
                 name = m.group(1).strip()
                 try:
                     qty = int(m.group(2)) if m.group(2) else 1
-                except Exception:
+                except ValueError:
                     qty = 1
                 items.append((name, qty))
             else:
                 items.append((entry, 1))
         return items
 
-    def abyssal_type_to_filament_name(self, abyssal_type):
+    def abyssal_type_to_filament_name(self, abyssal_type: str) -> str | None:
         tier_map = {
             'T1': 'Calm', 'T2': 'Agitated', 'T3': 'Fierce',
             'T4': 'Raging', 'T5': 'Chaotic', 'T6': 'Cataclysmic',
@@ -34,10 +34,10 @@ class AbyssalDataManager:
         try:
             tier, weather = abyssal_type.split()
             return f'{tier_map[tier]} {weather} Filament'
-        except Exception:
+        except (ValueError, KeyError):
             return None
 
-    def load_abyssal_results(self):
+    def load_abyssal_results(self) -> pd.DataFrame:
         result_files = sorted(glob.glob(os.path.join(self.data_dir, 'abyssal_results_*.csv')))
         if not result_files:
             return pd.DataFrame()
@@ -48,10 +48,10 @@ class AbyssalDataManager:
             dfs.append(df)
         return pd.concat(dfs, ignore_index=True)
 
-    def save_abyssal_result(self, result, start_time, end_time):
+    def save_abyssal_result(self, result: dict, start_time: datetime, end_time: datetime):
         items = result.get("items", "").strip()
         if not items:
-            return  # 아이템이 비어있으면 기록하지 않음
+            return
 
         os.makedirs(self.data_dir, exist_ok=True)
         date_str = start_time.strftime('%Y-%m-%d')

@@ -59,5 +59,3 @@ class AbyssalResultPopup:
         self.result["items"] = self.item_text.get("1.0", tk.END).strip()
         self.root.destroy()
 
-    def save_result(self, start_time, end_time):
-        self.data_manager.save_abyssal_result(self.result, start_time, end_time)

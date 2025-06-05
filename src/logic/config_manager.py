@@ -3,7 +3,7 @@ import os
 import getpass
 
 class ConfigManager:
-    def __init__(self, config_file='config.ini'):
+    def __init__(self, config_file: str = 'config.ini'):
         self.config_file = config_file
         self.config = configparser.ConfigParser()
         self._load_config()
@@ -30,16 +30,16 @@ class ConfigManager:
         print(f"[INFO] {self.config_file} 파일이 생성되었습니다.\nlogs_path와 character_name 값을 확인/수정한 후 프로그램을 다시 실행하세요.")
         exit(1)
 
-    def get(self, section, option, fallback=None):
+    def get(self, section: str, option: str, fallback: str | None = None) -> str | None:
         return self.config.get(section, option, fallback=fallback)
 
-    def get_logs_path(self):
+    def get_logs_path(self) -> str:
         return self.get('DEFAULT', 'logs_path', '').strip()
 
-    def get_character_name(self):
+    def get_character_name(self) -> str:
         return self.get('DEFAULT', 'character_name', '').strip()
 
-    def get_language(self):
+    def get_language(self) -> str:
         return self.get('DEFAULT', 'language', '').strip()
 
     def validate_config(self):

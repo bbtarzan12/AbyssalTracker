@@ -6,24 +6,28 @@ import json
 class EVEApi:
     REGION_ID = 10000002  # The Forge
     STATION_ID = 60003760 # Jita 4-4
-    CACHE_FILE = os.path.join('data', 'typeid_cache.json') # 캐시 파일을 data 디렉토리 내에 저장
+    CACHE_FILE = os.path.join('data', 'typeid_cache.json')
 
     def __init__(self):
-        self.name_to_id_cache = self._load_cache()
+        self.name_to_id_cache: dict[str, int] = self._load_cache()
 
-    def _load_cache(self):
+    def _load_cache(self) -> dict[str, int]:
         try:
             with open(self.CACHE_FILE, 'r', encoding='utf-8') as f:
                 return json.load(f)
-        except Exception:
+        except (FileNotFoundError, json.JSONDecodeError):
             return {}
 
     def _save_cache(self):
-        with open(self.CACHE_FILE, 'w', encoding='utf-8') as f:
-            json.dump(self.name_to_id_cache, f, ensure_ascii=False, indent=2)
+        try:
+            os.makedirs(os.path.dirname(self.CACHE_FILE), exist_ok=True)
+            with open(self.CACHE_FILE, 'w', encoding='utf-8') as f:
+                json.dump(self.name_to_id_cache, f, ensure_ascii=False, indent=2)
+        except IOError as e:
+            print(f"[ERROR] 캐시 파일 저장 중 오류 발생: {e}")
 
-    def fetch_type_ids(self, names):
-        name_to_id = {}
+    def fetch_type_ids(self, names: list[str]) -> dict[str, int]:
+        name_to_id: dict[str, int] = {}
         names_to_query = [n for n in names if n not in self.name_to_id_cache]
 
         if not names_to_query:
@@ -58,9 +62,9 @@ class EVEApi:
                 print(f"[ERROR] ESI API 연결 오류 발생: {e}, 청크: {chunk}")
             except requests.exceptions.HTTPError as e:
                 print(f"[ERROR] ESI API HTTP 오류 발생: {e.response.status_code} - {e.response.text}, 청크: {chunk}")
-            except json.decoder.JSONDecodeError:
+            except json.JSONDecodeError:
                 print(f"[ERROR] ESI API 응답 JSON 디코딩 오류 발생. 응답: {resp.text}, 청크: {chunk}")
-            except Exception as e:
+            except Exception as e: # Catch any other unexpected errors
                 print(f"[ERROR] ESI API 호출 중 예상치 못한 오류 발생: {e}, 청크: {chunk}")
                 continue
         
@@ -71,7 +75,7 @@ class EVEApi:
         print(f"[INFO] ESI API type_id 조회 완료. 총 {len(name_to_id)}개 변환 성공.")
         return name_to_id
 
-    def fetch_fuzzwork_prices(self, ids):
+    def fetch_fuzzwork_prices(self, ids: list[int]) -> dict:
         if not ids:
             print("[INFO] Fuzzwork API에 조회할 type_id가 없습니다.")
             return {}
@@ -95,8 +99,8 @@ class EVEApi:
             return {}
         except requests.exceptions.HTTPError as e:
                 print(f"[ERROR] Fuzzwork API HTTP 오류 발생: {e.response.status_code} - {e.response.text}, URL: {url}")
-        except json.decoder.JSONDecodeError:
+        except json.JSONDecodeError:
             print(f"[ERROR] Fuzzwork API 응답 JSON 디코딩 오류 발생. 응답: {resp.text}, URL: {url}")
-        except Exception as e:
+        except Exception as e: # Catch any other unexpected errors
             print(f"[ERROR] Fuzzwork API 호출 중 오류 발생: {e}")
             return {}
