@@ -3,7 +3,7 @@ from tkinter import ttk
 from tkinter import simpledialog
 import os
 from datetime import datetime
-from price import AbyssalDataManager # AbyssalDataManager 재사용
+from ..logic.price import AbyssalDataManager # AbyssalDataManager 재사용
 
 class AbyssalResultPopup:
     ABYSSAL_TYPES = [
@@ -61,14 +61,3 @@ class AbyssalResultPopup:
 
     def save_result(self, start_time, end_time):
         self.data_manager.save_abyssal_result(self.result, start_time, end_time)
-
-if __name__ == "__main__":
-    # 테스트용 실행 (메인 Tkinter 루프가 필요)
-    test_root = tk.Tk()
-    test_root.withdraw() # Hide the main window
-    data_manager = AbyssalDataManager()
-    popup = AbyssalResultPopup(data_manager)
-    popup.set_parent_root(test_root)
-    res = popup.show_popup()
-    print(res)
-    test_root.destroy() # Clean up

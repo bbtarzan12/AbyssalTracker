@@ -11,11 +11,11 @@ import tkinter as tk
 from pystray import Icon, Menu, MenuItem
 from PIL import Image # pystray 아이콘에 필요
 
-from config_manager import ConfigManager
-from eve_log import EveLogProcessor
-from ui_popup import AbyssalResultPopup
-from price import AbyssalDataManager, EVEApi, AbyssalPriceAnalyzer
-from ui_stats_display import AbyssalStatsDisplayPopup
+from .config_manager import ConfigManager
+from .eve_log import EveLogProcessor
+from ..ui.ui_popup import AbyssalResultPopup
+from .price import AbyssalDataManager, EVEApi, AbyssalPriceAnalyzer
+from ..ui.ui_stats_display import AbyssalStatsDisplayPopup
 
 class AbyssalRunTracker:
     def __init__(self, config_manager: ConfigManager, log_processor: EveLogProcessor,
@@ -368,28 +368,3 @@ class AbyssalRunTracker:
             self.monitoring = False
             if self.root:
                 self.root.destroy() # Tkinter 루트 윈도우 정리
-
-if __name__ == "__main__":
-    # .pyc 파일 생성을 방지 (선택 사항)
-    sys.dont_write_bytecode = True
-
-    config_manager = ConfigManager()
-    config_manager.validate_config() # Validate config before proceeding
-
-    log_processor = EveLogProcessor(
-        logs_path=config_manager.get_logs_path(),
-        language=config_manager.get_language()
-    )
-    data_manager = AbyssalDataManager()
-    popup_manager = AbyssalResultPopup(data_manager)
-
-    tracker = AbyssalRunTracker(
-        config_manager=config_manager,
-        log_processor=log_processor,
-        popup_manager=popup_manager,
-        data_manager=data_manager
-    )
-    
-    # 콘솔 창 없이 실행하려면 'pythonw.exe'를 사용해야 합니다.
-    # 예: pythonw tracker.py
-    tracker.start_monitoring()

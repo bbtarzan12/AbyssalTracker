@@ -7,11 +7,12 @@ from rich.console import Console
 from rich.table import Table
 import time
 import json
+import tempfile # Add tempfile for temporary directory
 
 class EVEApi:
     REGION_ID = 10000002  # The Forge
     STATION_ID = 60003760 # Jita 4-4
-    CACHE_FILE = os.path.join(os.path.dirname(__file__), 'typeid_cache.json')
+    CACHE_FILE = os.path.join(tempfile.gettempdir(), 'typeid_cache.json')
 
     def __init__(self):
         self.name_to_id_cache = self._load_cache()
@@ -336,9 +337,3 @@ class AbyssalPriceAnalyzer:
         else:
             self.console.print("데이터 없음.")
 
-if __name__ == "__main__":
-    console = Console()
-    eve_api = EVEApi()
-    data_manager = AbyssalDataManager()
-    analyzer = AbyssalPriceAnalyzer(eve_api, data_manager, console)
-    analyzer.analyze()
