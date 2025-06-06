@@ -1,0 +1,644 @@
+/* Professional Settings Panel Styles */
+
+.settings-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  background: var(--primary-bg);
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Loading State */
+.settings-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  gap: var(--space-4);
+  color: var(--text-secondary);
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-primary);
+  border-top: 3px solid var(--accent-bg);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Header Section */
+.settings-header {
+  background: var(--surface-bg);
+  border-bottom: 1px solid var(--border-primary);
+  padding: var(--space-6);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(10px);
+}
+
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-title h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-1);
+  letter-spacing: -0.025em;
+}
+
+.header-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* Monitor Status */
+.monitor-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--tertiary-bg);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-primary);
+  transition: all var(--transition-fast);
+}
+
+.monitor-status.active {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: var(--success);
+}
+
+.monitor-status.inactive {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: var(--error);
+}
+
+.monitor-status .status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--error);
+}
+
+.monitor-status.active .status-indicator {
+  background: var(--success);
+  animation: pulse 2s infinite;
+}
+
+.status-text {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.monitor-status.active .status-text {
+  color: var(--success);
+}
+
+.monitor-status.inactive .status-text {
+  color: var(--error);
+}
+
+/* Main Content */
+.settings-content {
+  flex: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-6);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+/* Configuration Sections */
+.config-section {
+  background: var(--surface-bg);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+}
+
+.config-section:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.section-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.section-icon {
+  font-size: 2rem;
+  background: linear-gradient(135deg, var(--accent-bg), var(--accent-hover));
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  flex-shrink: 0;
+}
+
+.section-info {
+  flex: 1;
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-4);
+  letter-spacing: -0.025em;
+}
+
+.section-description {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Configuration Grid */
+.config-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-6);
+}
+
+.config-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.field-label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  cursor: pointer;
+}
+
+.label-text {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.label-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.field-input,
+.field-select {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-primary);
+  background: var(--tertiary-bg);
+  color: var(--text-primary);
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-family: inherit;
+  transition: all var(--transition-fast);
+  width: 100%;
+}
+
+.field-input:focus,
+.field-select:focus {
+  outline: none;
+  border-color: var(--accent-bg);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  background: var(--surface-bg);
+}
+
+.field-input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+/* Toggle Switch */
+.toggle-container {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.toggle-button {
+  position: relative;
+  width: 48px;
+  height: 24px;
+  background: var(--border-primary);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  outline: none;
+}
+
+.toggle-button:focus {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.toggle-button.active {
+  background: var(--accent-bg);
+}
+
+.toggle-slider {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  transition: transform var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+}
+
+.toggle-button.active .toggle-slider {
+  transform: translateX(24px);
+}
+
+.toggle-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  min-width: 60px;
+}
+
+/* Control Grid */
+.control-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+}
+
+.control-card {
+  background: var(--tertiary-bg);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  transition: all var(--transition-fast);
+}
+
+.control-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-secondary);
+} 
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.card-icon {
+  font-size: 1.5rem;
+  background: linear-gradient(135deg, var(--accent-bg), var(--accent-hover));
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.card-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.card-description {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Control Buttons */
+.control-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  width: 100%;
+  font-family: inherit;
+}
+
+.control-button.primary {
+  background: var(--accent-bg);
+  border-color: var(--accent-bg);
+  color: white;
+}
+
+.control-button.primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.control-button.secondary {
+  background: var(--tertiary-bg);
+  border-color: var(--border-primary);
+  color: var(--text-secondary);
+}
+
+.control-button.secondary:hover {
+  background: var(--surface-bg);
+  border-color: var(--border-secondary);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.control-button.danger {
+  background: var(--error);
+  border-color: var(--error);
+  color: white;
+}
+
+.control-button.danger:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.button-icon {
+  font-size: 1rem;
+}
+
+.button-text {
+  font-weight: 600;
+}
+
+/* Footer Section */
+.settings-footer {
+  background: var(--surface-bg);
+  border-top: 1px solid var(--border-primary);
+  padding: var(--space-4) var(--space-6);
+  margin-top: auto; /* 자동으로 하단에 배치 */
+  backdrop-filter: blur(10px);
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.footer-info {
+  display: flex;
+  align-items: center;
+}
+
+.unsaved-changes {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--warning);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.changes-icon {
+  animation: pulse 2s infinite;
+}
+
+.footer-actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.action-button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+  min-width: 120px;
+  justify-content: center;
+}
+
+.action-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.action-button.primary {
+  background: var(--accent-bg);
+  border-color: var(--accent-bg);
+  color: white;
+}
+
+.action-button.primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.action-button.secondary {
+  background: var(--tertiary-bg);
+  border-color: var(--border-primary);
+  color: var(--text-secondary);
+}
+
+.action-button.secondary:hover:not(:disabled) {
+  background: var(--surface-bg);
+  border-color: var(--border-secondary);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .settings-content {
+    padding: var(--space-4);
+    gap: var(--space-6);
+  }
+  
+  .config-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+  
+  .control-grid {
+    grid-template-columns: 1fr;
+}
+
+  .header-content {
+    flex-direction: column;
+    gap: var(--space-4);
+    align-items: flex-start;
+}
+}
+
+@media (max-width: 768px) {
+  .settings-header {
+    padding: var(--space-4);
+  }
+  
+  .settings-content {
+    padding: var(--space-3);
+    gap: var(--space-4);
+  }
+  
+  .config-section {
+    padding: var(--space-4);
+  }
+  
+  .section-header {
+    flex-direction: column;
+    gap: var(--space-2);
+    text-align: center;
+  }
+  
+  .section-icon {
+    font-size: 1.5rem;
+    align-self: center;
+  }
+  
+  .footer-content {
+    flex-direction: column;
+    gap: var(--space-3);
+    align-items: center;
+  }
+  
+  .footer-actions {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .config-field {
+    min-width: 0;
+  }
+  
+  .field-input,
+  .field-select {
+    font-size: 0.85rem;
+  }
+  
+  .control-card {
+    padding: var(--space-3);
+  }
+  
+  .action-button {
+    min-width: 100px;
+    font-size: 0.8rem;
+  }
+}
+
+/* Animations */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Dark Mode Enhancements */
+@media (prefers-color-scheme: dark) {
+  .toggle-slider {
+    background: #f1f5f9;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .config-section,
+  .control-card {
+    border-width: 2px;
+  }
+  
+  .field-input,
+  .field-select,
+  .control-button,
+  .action-button {
+    border-width: 2px;
+}
+
+  .toggle-button {
+    border: 2px solid var(--border-primary);
+  }
+}
+
+/* Focus Management */
+.config-section:focus-within {
+  box-shadow: var(--shadow-lg);
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .config-section,
+  .control-card,
+  .control-button,
+  .action-button {
+    transition: none;
+}
+
+  .config-section:hover,
+  .control-card:hover,
+  .control-button:hover,
+  .action-button:hover {
+    transform: none;
+  }
+  
+  .loading-spinner {
+    animation: none;
+  }
+  
+  .changes-icon,
+  .status-indicator {
+    animation: none;
+  }
+}

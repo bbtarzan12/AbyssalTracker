@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 어비셜 런 완료</title>
+    <style>
+        /* CSS Variables matching the main app */
+        :root {
+            --primary-bg: #0a0e13;
+            --secondary-bg: #151922;
+            --tertiary-bg: #1f2937;
+            --accent-bg: #2563eb;
+            --accent-hover: #3b82f6;
+            --surface-bg: #1e293b;
+            --overlay-bg: rgba(15, 23, 42, 0.95);
+
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --text-accent: #60a5fa;
+
+            --border-primary: #334155;
+            --border-secondary: #475569;
+            --border-accent: #3b82f6;
+
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --info: #06b6d4;
+
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+
+            --space-1: 0.25rem;
+            --space-2: 0.5rem;
+            --space-3: 0.75rem;
+            --space-4: 1rem;
+            --space-5: 1.25rem;
+            --space-6: 1.5rem;
+            --space-8: 2rem;
+
+            --radius-sm: 0.25rem;
+            --radius-md: 0.375rem;
+            --radius-lg: 0.5rem;
+            --radius-xl: 0.75rem;
+
+            --transition-fast: 150ms ease-in-out;
+            --transition-normal: 250ms ease-in-out;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: transparent;
+            color: var(--text-primary);
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .abyssal-modal {
+            background: var(--surface-bg);
+            border: 2px solid var(--border-accent);
+            border-radius: var(--radius-xl);
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+            box-shadow: 0 0 50px rgba(37, 99, 235, 0.3), var(--shadow-xl);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .abyssal-modal::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-bg), var(--success), var(--warning), var(--accent-bg));
+            animation: shimmer 3s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        /* Modal Header */
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--space-4) var(--space-6);
+            background: linear-gradient(135deg, var(--tertiary-bg), var(--secondary-bg));
+            border-bottom: 1px solid var(--border-primary);
+            cursor: move;
+            user-select: none;
+        }
+
+        .modal-title {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+        }
+
+        .title-icon {
+            font-size: 1.3rem;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .modal-title h1 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .close-button {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: var(--space-2);
+            border-radius: var(--radius-md);
+            transition: var(--transition-fast);
+            line-height: 1;
+        }
+
+        .close-button:hover {
+            background: var(--error);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        /* Content */
+        .modal-content {
+            flex: 1;
+            padding: var(--space-5);
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-5);
+            overflow-y: auto;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: var(--space-4);
+        }
+
+        .section-icon {
+            font-size: 1.1rem;
+        }
+
+        /* Timeline Section */
+        .run-timeline-section {
+            background: var(--tertiary-bg);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--radius-lg);
+            padding: var(--space-4);
+        }
+
+                 .info-grid {
+             display: grid;
+             grid-template-columns: 1fr 1fr;
+             gap: var(--space-4);
+             align-items: start;
+         }
+
+         .timeline-container {
+             background: var(--secondary-bg);
+             border: 1px solid var(--border-primary);
+             border-radius: var(--radius-md);
+             padding: var(--space-3);
+         }
+
+         .timeline-item {
+             display: flex;
+             align-items: center;
+             gap: var(--space-2);
+             margin-bottom: var(--space-2);
+         }
+
+         .timeline-item:last-child {
+             margin-bottom: 0;
+         }
+
+         .timeline-icon {
+             width: 24px;
+             height: 24px;
+             border-radius: 50%;
+             display: flex;
+             align-items: center;
+             justify-content: center;
+             font-size: 0.8rem;
+             font-weight: 600;
+             box-shadow: var(--shadow-sm);
+             flex-shrink: 0;
+         }
+
+         .timeline-icon.start {
+             background: linear-gradient(135deg, var(--accent-bg), var(--accent-hover));
+             color: white;
+         }
+
+         .timeline-icon.end {
+             background: linear-gradient(135deg, var(--success), #059669);
+             color: white;
+         }
+
+         .timeline-icon.duration {
+             background: linear-gradient(135deg, var(--warning), #d97706);
+             color: white;
+         }
+
+         .timeline-content {
+             display: flex;
+             flex-direction: column;
+             gap: 1px;
+         }
+
+         .timeline-label {
+             font-size: 0.7rem;
+             color: var(--text-muted);
+             font-weight: 600;
+             text-transform: uppercase;
+             letter-spacing: 0.05em;
+         }
+
+         .timeline-value {
+             font-size: 0.8rem;
+             color: var(--text-primary);
+             font-family: 'Monaco', 'Consolas', monospace;
+             font-weight: 500;
+         }
+
+         .abyssal-type-section {
+             background: var(--tertiary-bg);
+             border: 1px solid var(--border-primary);
+             border-radius: var(--radius-md);
+             padding: var(--space-3);
+         }
+
+         .section-title-small {
+             display: flex;
+             align-items: center;
+             gap: var(--space-1);
+             font-size: 0.85rem;
+             font-weight: 600;
+             color: var(--text-primary);
+             margin-bottom: var(--space-2);
+         }
+
+         .section-icon-small {
+             font-size: 0.9rem;
+         }
+
+        
+
+        /* Form Section */
+        .form-section {
+            background: var(--tertiary-bg);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--radius-lg);
+            padding: var(--space-4);
+        }
+
+                 .modern-select {
+             width: 100%;
+             padding: var(--space-3);
+             background: var(--secondary-bg);
+             border: 1px solid var(--border-primary);
+             border-radius: var(--radius-md);
+             color: var(--text-primary);
+             font-size: 0.9rem;
+             transition: var(--transition-fast);
+         }
+
+         .modern-select:focus {
+             outline: none;
+             border-color: var(--accent-bg);
+             box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+         }
+
+        .textarea-container {
+            position: relative;
+        }
+
+                 .modern-textarea {
+             width: 100%;
+             padding: var(--space-3);
+             background: var(--secondary-bg);
+             border: 1px solid var(--border-primary);
+             border-radius: var(--radius-md);
+             color: var(--text-primary);
+             font-size: 0.9rem;
+             font-family: 'Monaco', 'Consolas', monospace;
+             resize: none;
+             min-height: 120px;
+             transition: var(--transition-fast);
+             line-height: 1.5;
+         }
+
+        .modern-textarea:focus {
+            outline: none;
+            border-color: var(--accent-bg);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+        }
+
+        .modern-textarea::placeholder {
+            color: var(--text-muted);
+            opacity: 0.7;
+        }
+
+        .textarea-footer {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: var(--space-2);
+        }
+
+        .item-count {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            background: var(--secondary-bg);
+            padding: var(--space-1) var(--space-2);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-primary);
+        }
+
+                 /* Footer */
+         .modal-footer {
+             display: flex;
+             gap: var(--space-2);
+             justify-content: flex-end;
+             padding: var(--space-4);
+             border-top: 1px solid var(--border-primary);
+             background: var(--secondary-bg);
+         }
+
+         .primary-button,
+         .secondary-button {
+             display: flex;
+             align-items: center;
+             gap: var(--space-1);
+             padding: var(--space-2) var(--space-4);
+             border: none;
+             border-radius: var(--radius-md);
+             font-size: 0.85rem;
+             font-weight: 600;
+             cursor: pointer;
+             transition: var(--transition-fast);
+             line-height: 1;
+         }
+
+        .primary-button {
+            background: linear-gradient(135deg, var(--accent-bg), var(--accent-hover));
+            color: white;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .primary-button:hover {
+            background: linear-gradient(135deg, var(--accent-hover), #1d4ed8);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .secondary-button {
+            background: var(--tertiary-bg);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-primary);
+        }
+
+        .secondary-button:hover {
+            background: var(--secondary-bg);
+            color: var(--text-primary);
+            border-color: var(--border-secondary);
+        }
+
+        .loading {
+            text-align: center;
+            color: var(--text-muted);
+            padding: var(--space-8);
+            font-size: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-primary);
+            border-radius: 50%;
+            border-top-color: var(--accent-bg);
+            animation: spin 1s ease-in-out infinite;
+            margin-right: var(--space-2);
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Custom Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--secondary-bg);
+            border-radius: var(--radius-sm);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-secondary);
+            border-radius: var(--radius-sm);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        /* Firefox scrollbar styling */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-secondary) var(--secondary-bg);
+        }
+
+        
+    </style>
+</head>
+<body>
+    <div class="abyssal-modal">
+        <div class="modal-header">
+            <div class="modal-title">
+                <span class="title-icon">🚀</span>
+                <h1>어비셜 런 완료</h1>
+            </div>
+            <button id="close-btn" class="close-button">
+                <span>✕</span>
+            </button>
+        </div>
+        
+        <div id="loading" class="loading">
+            <span class="loading-spinner"></span>
+            데이터 로딩 중...
+        </div>
+
+        <div id="form-content" style="display: none;">
+                        <div class="modal-content">
+                <div class="info-grid">
+                    <div class="timeline-container">
+                        <div class="timeline-item">
+                            <div class="timeline-icon start">🚀</div>
+                            <div class="timeline-content">
+                                <div class="timeline-label">시작</div>
+                                <div class="timeline-value" id="start-time">--:--:--</div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-icon end">🏁</div>
+                            <div class="timeline-content">
+                                <div class="timeline-label">완료</div>
+                                <div class="timeline-value" id="end-time">--:--:--</div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-icon duration">⏱️</div>
+                            <div class="timeline-content">
+                                <div class="timeline-label">소요시간</div>
+                                <div class="timeline-value" id="duration">--m --s</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="abyssal-type-section">
+                        <h3 class="section-title-small">
+                            <span class="section-icon-small">🎯</span>
+                            어비셜 종류
+                        </h3>
+                        <select id="abyssal-type" class="modern-select">
+                            <option value="T6 Exotic">T6 Exotic</option>
+                            <option value="T6 Firestorm">T6 Firestorm</option>
+                            <option value="T6 Gamma">T6 Gamma</option>
+                            <option value="T6 Dark">T6 Dark</option>
+                            <option value="T6 Electrical">T6 Electrical</option>
+                            <option value="T5 Exotic">T5 Exotic</option>
+                            <option value="T5 Firestorm">T5 Firestorm</option>
+                            <option value="T5 Gamma">T5 Gamma</option>
+                            <option value="T5 Dark">T5 Dark</option>
+                            <option value="T5 Electrical">T5 Electrical</option>
+                            <option value="T4 Exotic">T4 Exotic</option>
+                            <option value="T4 Firestorm">T4 Firestorm</option>
+                            <option value="T4 Gamma">T4 Gamma</option>
+                            <option value="T4 Dark">T4 Dark</option>
+                            <option value="T4 Electrical">T4 Electrical</option>
+                            <option value="T3 Exotic">T3 Exotic</option>
+                            <option value="T3 Firestorm">T3 Firestorm</option>
+                            <option value="T3 Gamma">T3 Gamma</option>
+                            <option value="T3 Dark">T3 Dark</option>
+                            <option value="T3 Electrical">T3 Electrical</option>
+                            <option value="T2 Exotic">T2 Exotic</option>
+                            <option value="T2 Firestorm">T2 Firestorm</option>
+                            <option value="T2 Gamma">T2 Gamma</option>
+                            <option value="T2 Dark">T2 Dark</option>
+                            <option value="T2 Electrical">T2 Electrical</option>
+                            <option value="T1 Exotic">T1 Exotic</option>
+                            <option value="T1 Firestorm">T1 Firestorm</option>
+                            <option value="T1 Gamma">T1 Gamma</option>
+                            <option value="T1 Dark">T1 Dark</option>
+                            <option value="T1 Electrical">T1 Electrical</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <span class="section-icon">🎁</span>
+                        획득 아이템
+                    </h3>
+                    <div class="textarea-container">
+                        <textarea 
+                            id="acquired-items" 
+                            class="modern-textarea"
+                            placeholder="EVE에서 복사한 아이템 목록을 여기에 붙여넣으세요...
+
+예시:
+Compressed Arkonor* 5
+Compressed Spodumain* 3
+..."
+                            rows="6"
+                        ></textarea>
+                        <div class="textarea-footer">
+                            <span class="item-count" id="item-count">0개 라인</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+                         <div class="modal-footer">
+                 <button id="save-btn" class="primary-button">
+                     <span>💾</span>
+                     저장하기
+                 </button>
+             </div>
+        </div>
+    </div>
+
+    <script>
+        const { invoke } = window.__TAURI__.core;
+        const { getCurrentWindow } = window.__TAURI__.window;
+
+        let runData = null;
+
+        // Update item count
+        function updateItemCount() {
+            const textarea = document.getElementById('acquired-items');
+            const lines = textarea.value.trim() ? textarea.value.trim().split('\n').filter(line => line.trim()) : [];
+            document.getElementById('item-count').textContent = `${lines.length}개 라인`;
+        }
+
+        
+
+        // 윈도우가 로드되면 런 데이터 가져오기
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // URL 파라미터에서 런 데이터 추출
+                const urlParams = new URLSearchParams(window.location.search);
+                const startTime = urlParams.get('start_time');
+                const endTime = urlParams.get('end_time');
+                const duration = urlParams.get('duration');
+
+                if (startTime && endTime && duration) {
+                    runData = { startTime, endTime, duration };
+                    
+                    // UI 업데이트
+                    document.getElementById('start-time').textContent = startTime;
+                    document.getElementById('end-time').textContent = endTime;
+                    document.getElementById('duration').textContent = duration;
+                    
+                    // 로딩 숨기고 폼 표시
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('form-content').style.display = 'block';
+                    
+                                         // 이벤트 리스너 설정
+                     setupEventListeners();
+                     
+                     // 초기 상태 업데이트
+                     updateItemCount();
+                } else {
+                    throw new Error('Run data not found in URL parameters');
+                }
+            } catch (error) {
+                console.error('Failed to load run data:', error);
+                document.getElementById('loading').innerHTML = '<span class="loading-spinner"></span>Error: 런 데이터를 불러올 수 없습니다.';
+            }
+        });
+
+        function setupEventListeners() {
+            // 윈도우 드래그 기능 설정
+            const modalHeader = document.querySelector('.modal-header');
+            const closeButton = document.getElementById('close-btn');
+            
+            if (modalHeader) {
+                modalHeader.addEventListener('mousedown', (e) => {
+                    // 닫기 버튼 클릭 시에는 드래그하지 않음
+                    if (e.target.closest('#close-btn')) {
+                        return;
+                    }
+                    getCurrentWindow().startDragging().catch(console.error);
+                });
+            }
+
+            // 닫기 버튼 클릭 (드래그보다 우선 처리)
+            if (closeButton) {
+                closeButton.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    console.log('Close button clicked');
+                    try {
+                        await getCurrentWindow().close();
+                    } catch (error) {
+                        console.error('Failed to close window:', error);
+                    }
+                });
+            }
+
+            // 저장 버튼 클릭
+            document.getElementById('save-btn').addEventListener('click', async () => {
+                if (!runData) {
+                    alert('Error: 런 데이터가 없습니다.');
+                    return;
+                }
+
+                const abyssalType = document.getElementById('abyssal-type').value;
+                const items = document.getElementById('acquired-items').value.trim();
+                
+                try {
+                    console.log('Saving abyssal result:', {
+                        type: abyssalType,
+                        items: items,
+                        start: runData.startTime,
+                        end: runData.endTime,
+                        duration: runData.duration
+                    });
+
+                    await invoke('save_abyssal_result', {
+                        abyssalType,
+                        items,
+                        startTime: runData.startTime,
+                        endTime: runData.endTime,
+                        duration: runData.duration
+                    });
+                    
+                    console.log('Successfully saved abyssal result');
+                    await getCurrentWindow().close();
+                } catch (error) {
+                    console.error('Failed to save abyssal result:', error);
+                    alert(`저장 실패: ${error.message || error}`);
+                }
+            });
+
+                        // 텍스트 에어리어 변경 시 아이템 카운트 업데이트
+             document.getElementById('acquired-items').addEventListener('input', updateItemCount);
+
+            // 키보드 단축키
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.key === 'Enter') {
+                    document.getElementById('save-btn').click();
+                }
+                if (e.key === 'Escape') {
+                    document.getElementById('close-btn').click();
+                }
+            });
+        }
+
+        // 텍스트 에어리어에 포커스
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const textarea = document.getElementById('acquired-items');
+                if (textarea) {
+                    textarea.focus();
+                }
+            }, 100);
+        });
+    </script>
+</body>
+</html> 

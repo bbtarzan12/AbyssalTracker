@@ -1,0 +1,13 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "abyssal-result",
+  "description": "Capability for the abyssal result window",
+  "windows": ["abyssal-result"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-close",
+    "core:window:allow-set-focus",
+    "core:window:allow-center",
+    "core:window:allow-start-dragging"
+  ]
+} 
