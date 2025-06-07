@@ -41,8 +41,6 @@ const DailyStatsDisplay: React.FC<DailyStatsDisplayProps> = ({
   item_buy_price_cache,
   selectedDate,
   setSelectedDate,
-  onDataUpdate,
-  onLightRefresh,
   onRunDeleted,
 }) => {
   // 금액 포맷팅 함수
@@ -74,9 +72,6 @@ const DailyStatsDisplay: React.FC<DailyStatsDisplayProps> = ({
   const avgProfit = totalRuns > 0 ? totalDailyIsk / totalRuns : 0;
 
   const filteredDfDaily = df.filter(run => run['날짜'] === selectedDate);
-  
-  // Duration calculations
-  const durations = filteredDfDaily.map(run => run['런 소요(분)']);
 
   // 각 런의 펼침/접힘 상태를 관리하는 상태
   const [expandedRuns, setExpandedRuns] = useState<Record<number, boolean>>({});
