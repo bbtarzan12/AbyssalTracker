@@ -362,68 +362,30 @@ async fn get_best_image_url(app_handle: AppHandle, type_id: u32, item_name: Stri
 
 #[tauri::command]
 async fn check_for_updates(app_handle: AppHandle) -> Result<String, String> {
-    use tauri_plugin_updater::UpdaterExt;
-    
     let current_version = app_handle.package_info().version.to_string();
     
     // GitHub API를 통해 최신 버전 정보 가져오기
     let latest_version = match get_latest_github_version().await {
         Ok(version) => version,
         Err(e) => {
-            println!("[WARN] Failed to get latest version from GitHub: {}", e);
-            "unknown".to_string()
+            println!("[ERROR] Failed to get latest version from GitHub: {}", e);
+            return Err(format!("업데이트 확인 실패: {}", e));
         }
     };
     
     println!("[DEBUG] Version comparison - Current: '{}', Latest: '{}'", current_version, latest_version);
     
-    // 수동 버전 비교 (semantic version)
-    let needs_update = if latest_version != "unknown" {
-        compare_versions(&current_version, &latest_version)
+    // 버전 비교 (semantic version)
+    let needs_update = compare_versions(&current_version, &latest_version);
+    
+    println!("[DEBUG] Version comparison result: needs_update = {}", needs_update);
+    
+    if needs_update {
+        println!("[INFO] Update available - Current: {}, Latest: {}", current_version, latest_version);
+        Ok(format!("업데이트 가능: 버전 {}", latest_version))
     } else {
-        false
-    };
-    
-    println!("[DEBUG] Manual version comparison result: needs_update = {}", needs_update);
-    
-    match app_handle.updater_builder().build() {
-        Ok(updater) => {
-            match updater.check().await {
-                Ok(Some(update)) => {
-                    println!("[INFO] Update available - Current: {}, Latest: {}", current_version, update.version);
-                    Ok(format!("업데이트 가능: 버전 {}", update.version))
-                },
-                Ok(None) => {
-                    // Tauri 업데이터가 업데이트 없다고 하더라도, 수동 비교로 확인
-                    if needs_update {
-                        println!("[INFO] Manual check detected update needed - Current: {}, Latest: {}", current_version, latest_version);
-                        Ok(format!("업데이트 가능: 버전 {}", latest_version))
-                    } else {
-                        println!("[INFO] No updates available - Current: {}, Latest: {} (already up to date)", current_version, latest_version);
-                        Ok("최신 버전입니다".to_string())
-                    }
-                },
-                Err(e) => {
-                    // Tauri 업데이터 오류 시에도 수동 비교로 확인
-                    if needs_update {
-                        println!("[INFO] Updater failed but manual check detected update - Current: {}, Latest: {}", current_version, latest_version);
-                        Ok(format!("업데이트 가능: 버전 {}", latest_version))
-                    } else {
-                        println!("[ERROR] Failed to check for updates - Current: {}, Latest: {}, Error: {}", current_version, latest_version, e);
-                        Err(format!("업데이트 확인 실패: {}", e))
-                    }
-                }
-            }
-        },
-        Err(e) => {
-            // 업데이터 초기화 실패 시에도 수동 비교로 확인
-            if needs_update {
-                println!("[INFO] Updater init failed but manual check detected update - Current: {}, Latest: {}", current_version, latest_version);
-                Ok(format!("업데이트 가능: 버전 {}", latest_version))
-            } else {
-                Err(format!("Updater initialization failed: {}", e))
-            }
-        }
+        println!("[INFO] No updates available - Current: {}, Latest: {} (already up to date)", current_version, latest_version);
+        Ok("최신 버전입니다".to_string())
     }
 }
 
@@ -686,7 +648,6 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {

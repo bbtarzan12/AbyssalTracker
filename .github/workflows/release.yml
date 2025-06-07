@@ -5,9 +5,7 @@ on:
     tags:
       - 'v*'
 
-env:
-  TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-  TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+# 환경변수 제거됨 - 더이상 서명이 필요없음
 
 jobs:
   windows-release:
@@ -65,9 +63,9 @@ jobs:
             - MSI 설치 파일
             - NSIS 설치 파일 (권장)
             
-            ### 자동 업데이트
-            이 버전부터 앱 시작 시 자동으로 최신 버전을 확인하고 업데이트합니다.
+            ### 수동 업데이트
+            설정 페이지에서 업데이트를 확인하고 설치할 수 있습니다.
           releaseDraft: false
           prerelease: false
-          includeUpdaterJson: true
+          includeUpdaterJson: false
           args: "--verbose" 
