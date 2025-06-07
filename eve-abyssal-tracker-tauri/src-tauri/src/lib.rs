@@ -458,6 +458,11 @@ fn compare_versions(current: &str, latest: &str) -> bool {
 }
 
 async fn get_latest_github_version() -> Result<String, String> {
+    let (version, _) = get_latest_github_release().await?;
+    Ok(version)
+}
+
+async fn get_latest_github_release() -> Result<(String, String), String> {
     use std::collections::HashMap;
     
     let client = reqwest::Client::new();
@@ -488,20 +493,36 @@ async fn get_latest_github_version() -> Result<String, String> {
         tag_name.to_string()
     };
     
-    Ok(version)
+    // assets에서 .exe 파일 찾기
+    let assets = json.get("assets")
+        .and_then(|v| v.as_array())
+        .ok_or("No assets found in response")?;
+    
+    let setup_asset = assets.iter()
+        .find(|asset| {
+            asset.get("name")
+                .and_then(|name| name.as_str())
+                .map(|name| name.ends_with("-setup.exe"))
+                .unwrap_or(false)
+        })
+        .ok_or("No setup.exe file found in release assets")?;
+    
+    let download_url = setup_asset.get("browser_download_url")
+        .and_then(|url| url.as_str())
+        .ok_or("No download URL found for setup.exe")?;
+    
+    Ok((version, download_url.to_string()))
 }
 
 
 
 #[tauri::command]
 async fn install_update(app_handle: AppHandle) -> Result<String, String> {
-    use tauri_plugin_updater::UpdaterExt;
-    
     let current_version = app_handle.package_info().version.to_string();
     
-    // GitHub API를 통해 최신 버전 정보 가져오기
-    let latest_version = match get_latest_github_version().await {
-        Ok(version) => version,
+    // GitHub API를 통해 최신 버전 정보와 다운로드 URL 가져오기
+    let (latest_version, download_url) = match get_latest_github_release().await {
+        Ok((version, url)) => (version, url),
         Err(e) => {
             println!("[WARN] Failed to get latest version from GitHub during install: {}", e);
             return Err(format!("GitHub API 오류: {}", e));
@@ -516,42 +537,50 @@ async fn install_update(app_handle: AppHandle) -> Result<String, String> {
         return Ok("이미 최신 버전입니다".to_string());
     }
     
-    println!("[INFO] Attempting to install update - Current: {}, Latest: {}", current_version, latest_version);
+    println!("[INFO] Downloading and installing update - Current: {}, Latest: {}", current_version, latest_version);
     
-    match app_handle.updater_builder().build() {
-        Ok(updater) => {
-            match updater.check().await {
-                Ok(Some(update)) => {
-                    println!("[INFO] Installing update - Current: {}, Installing: {}", current_version, update.version);
-                    match update.download_and_install(|chunk_length, content_length| {
-                        println!("Downloaded {} of {:?}", chunk_length, content_length);
-                    }, || {
-                        println!("Download finished");
-                    }).await {
-                        Ok(_) => {
-                            println!("[INFO] Update installed successfully - Updated from {} to {}", current_version, update.version);
-                            Ok("업데이트가 설치되었습니다. 애플리케이션을 다시 시작해주세요.".to_string())
-                        },
-                        Err(e) => {
-                            println!("[ERROR] Failed to install update - Current: {}, Target: {}, Error: {}", current_version, update.version, e);
-                            Err(format!("업데이트 설치 실패: {}", e))
-                        }
-                    }
-                },
-                Ok(None) => {
-                    // Tauri 업데이터가 업데이트 없다고 해도, 수동 확인으로 업데이트가 필요하다면 강제 시도
-                    println!("[WARN] Tauri updater found no update, but manual check indicates update needed - Current: {}, Latest: {}", current_version, latest_version);
-                    Err("Tauri 업데이터가 업데이트를 찾지 못했습니다. 수동으로 GitHub에서 다운로드해주세요.".to_string())
-                },
-                Err(e) => {
-                    println!("[ERROR] Update check failed during install - Current version: {}, Error: {}", current_version, e);
-                    Err(format!("업데이트 확인 실패: {}", e))
-                }
-            }
+    // 임시 폴더에 설치 파일 다운로드
+    let temp_dir = std::env::temp_dir();
+    let installer_path = temp_dir.join(format!("EVE_Abyssal_Tracker_{}_x64-setup.exe", latest_version));
+    
+    // 다운로드
+    let client = reqwest::Client::new();
+    let response = client.get(&download_url).send().await
+        .map_err(|e| format!("다운로드 실패: {}", e))?;
+    
+    if !response.status().is_success() {
+        return Err(format!("다운로드 오류: HTTP {}", response.status()));
+    }
+    
+    let bytes = response.bytes().await
+        .map_err(|e| format!("다운로드 데이터 읽기 실패: {}", e))?;
+    
+    // 파일 저장
+    std::fs::write(&installer_path, bytes)
+        .map_err(|e| format!("설치 파일 저장 실패: {}", e))?;
+    
+    println!("[INFO] Downloaded installer to: {}", installer_path.display());
+    
+    // 설치 파일 실행
+    let mut command = std::process::Command::new(&installer_path);
+    command.arg("/S"); // Silent 설치 옵션 (NSIS)
+    
+    match command.spawn() {
+        Ok(_) => {
+            println!("[INFO] Installer launched successfully");
+            
+            // 현재 앱 종료
+            std::thread::spawn(move || {
+                std::thread::sleep(std::time::Duration::from_secs(2));
+                std::process::exit(0);
+            });
+            
+            Ok("업데이트 설치를 시작했습니다. 잠시후 애플리케이션이 종료됩니다.".to_string())
         },
         Err(e) => {
-            println!("[ERROR] Updater initialization failed during install: {}", e);
-            Err(format!("업데이터 초기화 실패: {}", e))
+            // 파일 정리
+            let _ = std::fs::remove_file(&installer_path);
+            Err(format!("설치 파일 실행 실패: {}", e))
         }
     }
 }
