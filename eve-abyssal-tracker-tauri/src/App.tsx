@@ -278,11 +278,17 @@ function App() {
       try {
         await loadAbyssalData(); // 데이터 로딩
         
-        // 앱 시작 시 자동 업데이트 확인
+        // 앱 시작 시 자동 업데이트 확인 및 설치
         try {
           const updateResult = await invoke("check_for_updates") as string;
           if (updateResult.includes("업데이트 가능")) {
-            triggerPopup("업데이트 알림", updateResult, "info");
+            triggerPopup("업데이트 다운로드 중", "새 버전을 다운로드하고 설치하는 중입니다...", "info");
+            try {
+              const installResult = await invoke("install_update") as string;
+              triggerPopup("업데이트 완료", installResult, "info");
+            } catch (installError) {
+              triggerPopup("업데이트 실패", `업데이트 설치에 실패했습니다: ${installError}`, "error");
+            }
           }
         } catch (e) {
           console.log("업데이트 확인 건너뜀:", e);

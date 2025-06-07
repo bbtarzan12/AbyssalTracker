@@ -35,7 +35,7 @@
       "endpoints": [
         "https://github.com/bbtarzan12/AbyssalTracker/releases/latest/download/latest.json"
       ],
-      "dialog": true,
+      "dialog": false,
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEM0RUJFOEZCM0I0QkI1RjMKUldUenRVczcrK2pyeEljR2RVd1NZT1liRStudmw5T3hRQzNBRThOb2NnR29rNzBXdHFmNTVCclEK"
     }
   },
