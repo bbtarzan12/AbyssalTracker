@@ -1,87 +1,61 @@
-name: 'Release'
+name: 'Windows Release'
 
 on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
 
 env:
   TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
-  TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
 
 jobs:
-  release:
+  windows-release:
+    name: Build and Release for Windows
+    runs-on: windows-latest
     permissions:
       contents: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: 'macos-latest'
-            args: '--target aarch64-apple-darwin'
-          - platform: 'macos-latest'
-            args: '--target x86_64-apple-darwin'
-          - platform: 'ubuntu-20.04'
-            args: ''
-          - platform: 'windows-latest'
-            args: ''
-
-    runs-on: ${{ matrix.platform }}
+    
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install dependencies (ubuntu only)
-        if: matrix.platform == 'ubuntu-20.04'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
-
-      - name: Rust setup
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
-
-      - name: Rust cache
-        uses: swatinem/rust-cache@v2
-        with:
-          workspaces: './eve-abyssal-tracker-tauri/src-tauri -> target'
-
-      - name: Sync node version and setup cache
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 'lts/*'
+          node-version: '20'
           cache: 'npm'
           cache-dependency-path: './eve-abyssal-tracker-tauri/package-lock.json'
 
-      - name: Install frontend dependencies
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
         working-directory: ./eve-abyssal-tracker-tauri
         run: npm ci
 
-      - name: Build the app
+      - name: Build and Release
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: './eve-abyssal-tracker-tauri'
           tagName: ${{ github.ref_name }}
-          releaseName: 'EVE Abyssal Tracker v__VERSION__'
+          releaseName: 'EVE Abyssal Tracker v__VERSION__ (Windows)'
           releaseBody: |
-            ## 변경사항
+            ## 🚀 EVE Abyssal Tracker Windows 릴리스
             
-            새로운 기능과 개선사항이 포함된 업데이트입니다.
+            ### 📥 설치 방법
+            1. 아래 Assets에서 `.msi` 파일을 다운로드하세요
+            2. 다운로드한 파일을 실행하여 설치
             
-            ## 설치 방법
+            ### 🔄 자동 업데이트
+            - 애플리케이션 내 설정 탭에서 업데이트 확인 가능
+            - 새 버전 발견 시 자동 다운로드 및 설치
             
-            1. 아래 Assets에서 운영체제에 맞는 파일을 다운로드하세요
-            2. Windows: `.msi` 또는 `.exe` 파일 실행
-            3. macOS: `.dmg` 파일 실행
-            4. Linux: `.deb` 또는 `.AppImage` 파일 실행
-            
-            ## 자동 업데이트
-            
-            애플리케이션 내 설정에서 업데이트를 확인하고 설치할 수 있습니다.
+            ### ✨ 주요 기능
+            - EVE Online 어비셜 런 자동 추적
+            - 실시간 수익 분석
+            - 일별/전체 통계
+            - 아이템 가격 자동 조회
           releaseDraft: false
-          prerelease: false
-          args: ${{ matrix.args }} 
+          prerelease: false 

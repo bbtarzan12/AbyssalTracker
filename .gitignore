@@ -196,3 +196,5 @@ cython_debug/
 data
 typeid_cache.json
 config.ini
+eve-abyssal-tracker-tauri/tauri-updater-key.key
+eve-abyssal-tracker-tauri/tauri-updater-key.pub
