@@ -50,7 +50,7 @@ jobs:
         working-directory: ./eve-abyssal-tracker-tauri
         run: npm ci
 
-      - name: Build and Release
+      - name: Build Tauri App
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -64,5 +64,10 @@ jobs:
             Windows용 설치 파일을 제공합니다.
             - MSI 설치 파일
             - NSIS 설치 파일 (권장)
+            
+            ### 자동 업데이트
+            이 버전부터 앱 시작 시 자동으로 최신 버전을 확인하고 업데이트합니다.
           releaseDraft: false
-          prerelease: false 
+          prerelease: false
+          includeUpdaterJson: true
+          args: "--verbose" 
