@@ -1,0 +1,11 @@
+{
+  "version": "1.0.14",
+  "notes": "## EVE Abyssal Tracker v1.0.14\n\nWindows용 설치 파일을 제공합니다.\n- MSI 설치 파일\n- NSIS 설치 파일 (권장)\n\n### 자동 업데이트\n이 버전부터 앱 시작 시 자동으로 최신 버전을 확인하고 업데이트합니다.",
+  "pub_date": "2025-06-07T12:33:46.000Z",
+  "platforms": {
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUenRVczcrK2pyeE9EYXk2czNVOHh5ZTVXenArbjg2QzZkaGhFaENCeDJ3TlhPRGtYbFhiQVEzRG5UK1ZYVUoxY2VVNDZzZnZ4WTFLVitleU5TbkIxTGJRRGQ5RE16UndJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzQ5Mjk5NjIzCWZpbGU6RVZFIEFieXNzYWwgVHJhY2tlcl8xLjAuMTRfeDY0X2VuLVVTLm1zaQoxa1pLcEgxUHUzZlhhTWRMalZBbndBZ2Z4KzdDMlJVY1MwN3EwZFpOZ2NzeWdRZDM5S0JoNmJJK3lTZGJjV1pRVmc1OXgwS3A4YjVpSG5keERRWGtBQT09Cg==",
+      "url": "https://github.com/bbtarzan12/AbyssalTracker/releases/download/v1.0.14/EVE.Abyssal.Tracker_1.0.14_x64_en-US.msi"
+    }
+  }
+}
