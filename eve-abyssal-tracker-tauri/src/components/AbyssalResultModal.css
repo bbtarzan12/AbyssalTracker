@@ -301,6 +301,27 @@
   border: 1px solid var(--border-primary);
 }
 
+/* Ship Class Selector */
+.ship-class-selector {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.ship-class-info {
+  display: flex;
+  justify-content: center;
+}
+
+.info-text {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  background: var(--secondary-bg);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-primary);
+}
+
 /* Footer */
 .modal-footer {
   display: flex;

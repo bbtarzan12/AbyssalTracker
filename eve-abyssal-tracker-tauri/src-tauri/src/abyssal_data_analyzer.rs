@@ -17,6 +17,8 @@ pub struct RunData {
     pub run_time_minutes: f64,
     #[serde(rename = "어비셜 종류")]
     pub abyssal_type: String,
+    #[serde(rename = "함급")]
+    pub ship_class: i32,
     #[serde(rename = "실수익")]
     pub net_profit: f64,
     #[serde(rename = "ISK/h")]
@@ -66,7 +68,7 @@ pub struct AnalysisResult {
 }
 
 pub struct AbyssalDataAnalyzer {
-    eve_api: Arc<EVEApi>,
+    eve_api: Arc<Mutex<EVEApi>>,
     data_manager: Arc<Mutex<AbyssalDataManager>>,
     pub app_handle: Option<AppHandle>,
 }
@@ -80,7 +82,7 @@ pub struct LoadingProgress {
 }
 
 impl AbyssalDataAnalyzer {
-    pub fn new(eve_api: Arc<EVEApi>, data_manager: Arc<Mutex<AbyssalDataManager>>) -> Self {
+    pub fn new(eve_api: Arc<Mutex<EVEApi>>, data_manager: Arc<Mutex<AbyssalDataManager>>) -> Self {
         Self {
             eve_api,
             data_manager,
@@ -175,7 +177,7 @@ impl AbyssalDataAnalyzer {
         self.emit_progress("type_id_fetch", "ESI API로 아이템 type_id 변환 중...", Some(0.0), false);
         println!("  ▶️ ESI API로 아이템 type_id 변환 중... 🔄");
         let start_type_id_fetch = std::time::Instant::now();
-        let name_to_id = self.eve_api.fetch_type_ids(all_item_names.clone()).await?;
+        let name_to_id = self.eve_api.lock().await.fetch_type_ids(all_item_names.clone()).await?;
         let end_type_id_fetch = start_type_id_fetch.elapsed();
         self.emit_progress("type_id_fetch", &format!("{}종 변환 성공! (미매칭: {}) ({:.2}초)", name_to_id.len(), all_item_names.len() - name_to_id.len(), end_type_id_fetch.as_secs_f64()), Some(100.0), true);
         println!("  ▶️ {}종 변환 성공! (미매칭: {}) 소요 시간: {:.2}초 💡", 
@@ -193,7 +195,7 @@ impl AbyssalDataAnalyzer {
             let progress = ((chunk_index as f64 / total_chunks as f64) * 100.0).min(99.0);
             self.emit_progress("price_fetch", &format!("시세 조회 중... ({}/{})", chunk_index + 1, total_chunks), Some(progress), false);
             
-            let chunk_prices = self.eve_api.fetch_fuzzwork_prices(chunk.to_vec()).await?;
+            let chunk_prices = self.eve_api.lock().await.fetch_fuzzwork_prices(chunk.to_vec()).await?;
             prices.extend(chunk_prices);
             tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
         }
@@ -259,6 +261,18 @@ impl AbyssalDataAnalyzer {
         let abyssal_type_col = df.column("어비셜 종류").map_err(|e| anyhow::anyhow!("어비셜 종류 컬럼 없음: {}", e))?.str().unwrap();
         let acquired_items_col = df.column("획득 아이템").map_err(|e| anyhow::anyhow!("획득 아이템 컬럼 없음: {}", e))?.str().unwrap();
         
+        // 함급 컬럼은 선택적 (기존 CSV와의 호환성)
+        let ship_class_col_i32 = df.column("함급").ok().and_then(|col| col.i32().ok());
+        let ship_class_col_i64 = df.column("함급").ok().and_then(|col| col.i64().ok());
+        println!("DEBUG light_analyze_data: ship_class_col_i32 exists: {:?}, ship_class_col_i64 exists: {:?}", 
+                ship_class_col_i32.is_some(), ship_class_col_i64.is_some());
+        if let Some(col) = &ship_class_col_i32 {
+            println!("DEBUG light_analyze_data: first 5 ship class values (i32): {:?}", col.slice(0, 5));
+        }
+        if let Some(col) = &ship_class_col_i64 {
+            println!("DEBUG light_analyze_data: first 5 ship class values (i64): {:?}", col.slice(0, 5));
+        }
+        
         let data_manager = self.data_manager.lock().await;
         
         for i in 0..df.height() {
@@ -267,6 +281,13 @@ impl AbyssalDataAnalyzer {
             let run_time_minutes = run_time_col.get(i).unwrap_or(0.0);
             let abyssal_type = abyssal_type_col.get(i).unwrap_or("").to_string();
             let acquired_items = acquired_items_col.get(i).unwrap_or("").to_string();
+            
+            // 함급 읽기 (기본값: 1 - Cruiser)
+            let ship_class = if let Some(ship_class_col) = &ship_class_col_i64 {
+                ship_class_col.get(i).unwrap_or(1).try_into().unwrap()
+            } else {
+                1 // 기본값: Cruiser
+            };
             
             // 드롭 가격 계산
             let drop_value: f64 = {
@@ -279,11 +300,11 @@ impl AbyssalDataAnalyzer {
                 total_drop_value
             };
             
-            // 입장료 계산 (Python과 동일하게 sell.min 사용)
+            // 입장료 계산 - ship_class에 따라 필라멘트 개수 결정
             let entry_cost: f64 = {
                 if let Some(filament) = data_manager.abyssal_type_to_filament_name(&abyssal_type) {
                     let price = item_sell_price_cache.get(&filament).unwrap_or(&0.0);
-                    let cost = price * 3.0; // 프리깃 3배
+                    let cost = price * (ship_class as f64); // 함급에 따른 배수
                     cost
                 } else {
                     0.0
@@ -312,6 +333,7 @@ impl AbyssalDataAnalyzer {
                 end_time,
                 run_time_minutes,
                 abyssal_type,
+                ship_class,
                 net_profit,
                 isk_per_hour,
                 acquired_items,
@@ -480,11 +502,11 @@ impl AbyssalDataAnalyzer {
             println!("  ▶️ {}개의 새로운 아이템에 대해 API 조회 중...", missing_items.len());
             
             // TypeID 조회
-            let name_to_id = self.eve_api.fetch_type_ids(missing_items).await?;
+            let name_to_id = self.eve_api.lock().await.fetch_type_ids(missing_items).await?;
             
             // 가격 조회
             let type_ids: Vec<u32> = name_to_id.values().cloned().collect();
-            let prices = self.eve_api.fetch_fuzzwork_prices(type_ids).await?;
+            let prices = self.eve_api.lock().await.fetch_fuzzwork_prices(type_ids).await?;
             
             // 가격 캐시 업데이트
             for (name, type_id) in &name_to_id {
@@ -520,6 +542,18 @@ impl AbyssalDataAnalyzer {
         let abyssal_type_col = df.column("어비셜 종류").unwrap().str().unwrap();
         let acquired_items_col = df.column("획득 아이템").unwrap().str().unwrap();
         
+        // 함급 컬럼은 선택적 (기존 CSV와의 호환성)
+        let ship_class_col_i32 = df.column("함급").ok().and_then(|col| col.i32().ok());
+        let ship_class_col_i64 = df.column("함급").ok().and_then(|col| col.i64().ok());
+        println!("DEBUG analyze_data: ship_class_col_i32 exists: {:?}, ship_class_col_i64 exists: {:?}", 
+                ship_class_col_i32.is_some(), ship_class_col_i64.is_some());
+        if let Some(col) = &ship_class_col_i32 {
+            println!("DEBUG analyze_data: first 5 ship class values (i32): {:?}", col.slice(0, 5));
+        }
+        if let Some(col) = &ship_class_col_i64 {
+            println!("DEBUG analyze_data: first 5 ship class values (i64): {:?}", col.slice(0, 5));
+        }
+        
         let data_manager = self.data_manager.lock().await;
         
         for i in 0..df.height() {
@@ -528,6 +562,13 @@ impl AbyssalDataAnalyzer {
             let run_time_minutes = run_time_col.get(i).unwrap_or(0.0);
             let abyssal_type = abyssal_type_col.get(i).unwrap_or("").to_string();
             let acquired_items = acquired_items_col.get(i).unwrap_or("").to_string();
+            
+            // 함급 읽기 (기본값: 1 - Cruiser)
+            let ship_class = if let Some(ship_class_col) = &ship_class_col_i64 {
+                ship_class_col.get(i).unwrap_or(1).try_into().unwrap()
+            } else {
+                1 // 기본값: Cruiser
+            };
             
             // 드롭 가격 계산
             let drop_value: f64 = {
@@ -538,11 +579,11 @@ impl AbyssalDataAnalyzer {
                 }).sum()
             };
             
-            // 입장료 계산
+            // 입장료 계산 - ship_class에 따라 필라멘트 개수 결정
             let entry_cost: f64 = {
                 if let Some(filament) = data_manager.abyssal_type_to_filament_name(&abyssal_type) {
                     let price = item_sell_price_cache.get(&filament).unwrap_or(&0.0);
-                    price * 3.0
+                    price * (ship_class as f64) // 함급에 따른 배수
                 } else {
                     0.0
                 }
@@ -566,6 +607,7 @@ impl AbyssalDataAnalyzer {
                 end_time,
                 run_time_minutes,
                 abyssal_type,
+                ship_class,
                 net_profit,
                 isk_per_hour,
                 acquired_items,

@@ -10,6 +10,7 @@ use std::sync::Arc; // Arc 추가
 pub struct AppConfig {
     pub general: GeneralConfig,
     pub tracker: TrackerConfig,
+    pub ui: UiConfig,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -23,6 +24,12 @@ pub struct TrackerConfig {
     pub abyssal_data_path: String,
     pub daily_stats_path: String,
     pub overall_stats_path: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct UiConfig {
+    pub last_abyssal_type: String,
+    pub last_ship_class: i32,
 }
 
 impl Default for AppConfig {
@@ -44,6 +51,10 @@ impl Default for AppConfig {
                 abyssal_data_path: String::from("data"),
                 daily_stats_path: String::from(""),
                 overall_stats_path: String::from(""),
+            },
+            ui: UiConfig {
+                last_abyssal_type: String::from("T5 Exotic"), // 기본값
+                last_ship_class: 1, // 기본값: Cruiser
             },
         }
     }
@@ -107,6 +118,16 @@ impl ConfigManager {
             app_config.tracker.overall_stats_path = overall_stats_path;
         }
 
+        // UI 설정 로드
+        if let Some(last_abyssal_type) = config_ini.get("ui", "last_abyssal_type") {
+            app_config.ui.last_abyssal_type = last_abyssal_type;
+        }
+        if let Some(last_ship_class_str) = config_ini.get("ui", "last_ship_class") {
+            if let Ok(last_ship_class) = last_ship_class_str.parse::<i32>() {
+                app_config.ui.last_ship_class = last_ship_class;
+            }
+        }
+
         self.config = app_config;
         self.validate()?;
         Ok(())
@@ -121,6 +142,10 @@ impl ConfigManager {
         config_ini.set("tracker", "abyssal_data_path", Some(self.config.tracker.abyssal_data_path.clone()));
         config_ini.set("tracker", "daily_stats_path", Some(self.config.tracker.daily_stats_path.clone()));
         config_ini.set("tracker", "overall_stats_path", Some(self.config.tracker.overall_stats_path.clone()));
+
+        // UI 설정 저장
+        config_ini.set("ui", "last_abyssal_type", Some(self.config.ui.last_abyssal_type.clone()));
+        config_ini.set("ui", "last_ship_class", Some(self.config.ui.last_ship_class.to_string()));
 
         config_ini.write(&self.config_path).map_err(|e| anyhow!("Failed to write config to file: {}", e))?;
         Ok(())
@@ -187,6 +212,24 @@ pub async fn set_character_name(
     
     // LogMonitor 재시작
     crate::restart_log_monitor_if_running(&app_handle).await?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_ui_config(state: State<'_, Arc<tokio::sync::Mutex<ConfigManager>>>) -> Result<UiConfig, String> {
+    Ok(state.inner().lock().await.config.ui.clone())
+}
+
+#[tauri::command]
+pub async fn set_ui_preferences(
+    state: State<'_, Arc<tokio::sync::Mutex<ConfigManager>>>, 
+    abyssal_type: String,
+    ship_class: i32
+) -> Result<(), String> {
+    let mut config_manager = state.inner().lock().await;
+    config_manager.config.ui.last_abyssal_type = abyssal_type;
+    config_manager.config.ui.last_ship_class = ship_class;
+    config_manager.save().map_err(|e| e.to_string())?;
     Ok(())
 }
 

@@ -258,24 +258,43 @@
          }
 
          .abyssal-type-section {
-             background: var(--tertiary-bg);
+             background: var(--secondary-bg);
              border: 1px solid var(--border-primary);
              border-radius: var(--radius-md);
              padding: var(--space-3);
+             height: 100%;
+             display: flex;
+             flex-direction: column;
+         }
+
+         .select-group {
+             display: flex;
+             flex-direction: column;
+             gap: var(--space-2);
+             height: 100%;
+         }
+
+         .select-item {
+             display: flex;
+             flex-direction: column;
+             gap: 1px;
+             flex: 1;
          }
 
          .section-title-small {
              display: flex;
              align-items: center;
              gap: var(--space-1);
-             font-size: 0.85rem;
+             font-size: 0.7rem;
              font-weight: 600;
-             color: var(--text-primary);
-             margin-bottom: var(--space-2);
+             color: var(--text-muted);
+             text-transform: uppercase;
+             letter-spacing: 0.05em;
+             margin-bottom: var(--space-1);
          }
 
          .section-icon-small {
-             font-size: 0.9rem;
+             font-size: 0.8rem;
          }
 
         
@@ -288,14 +307,14 @@
             padding: var(--space-4);
         }
 
-                 .modern-select {
+         .modern-select {
              width: 100%;
-             padding: var(--space-3);
+             padding: var(--space-1);
              background: var(--secondary-bg);
              border: 1px solid var(--border-primary);
              border-radius: var(--radius-md);
              color: var(--text-primary);
-             font-size: 0.9rem;
+             font-size: 0.8rem;
              transition: var(--transition-fast);
          }
 
@@ -377,6 +396,8 @@
             border-radius: var(--radius-sm);
             border: 1px solid var(--border-primary);
         }
+
+
 
                  /* Footer */
          .modal-footer {
@@ -528,56 +549,73 @@
                     </div>
 
                     <div class="abyssal-type-section">
-                        <h3 class="section-title-small">
-                            <span class="section-icon-small">🎯</span>
-                            어비셜 종류
-                        </h3>
-                        <select id="abyssal-type" class="modern-select">
-                            <optgroup label="Cataclysmic">
-                                <option value="T6 Exotic">T6 Exotic</option>
-                                <option value="T6 Firestorm">T6 Firestorm</option>
-                                <option value="T6 Gamma">T6 Gamma</option>
-                                <option value="T6 Dark">T6 Dark</option>
-                                <option value="T6 Electrical">T6 Electrical</option>
-                            </optgroup>
-                            <optgroup label="Chaotic">
-                                <option value="T5 Exotic">T5 Exotic</option>
-                                <option value="T5 Firestorm">T5 Firestorm</option>
-                                <option value="T5 Gamma">T5 Gamma</option>
-                                <option value="T5 Dark">T5 Dark</option>
-                                <option value="T5 Electrical">T5 Electrical</option>
-                            </optgroup>
-                            <optgroup label="Raging">
-                                <option value="T4 Exotic">T4 Exotic</option>
-                                <option value="T4 Firestorm">T4 Firestorm</option>
-                                <option value="T4 Gamma">T4 Gamma</option>
-                                <option value="T4 Dark">T4 Dark</option>
-                                <option value="T4 Electrical">T4 Electrical</option>
-                            </optgroup>
-                            <optgroup label="Fierce">
-                                <option value="T3 Exotic">T3 Exotic</option>
-                                <option value="T3 Firestorm">T3 Firestorm</option>
-                                <option value="T3 Gamma">T3 Gamma</option>
-                                <option value="T3 Dark">T3 Dark</option>
-                                <option value="T3 Electrical">T3 Electrical</option>
-                            </optgroup>
-                            <optgroup label="Agitated">
-                                <option value="T2 Exotic">T2 Exotic</option>
-                                <option value="T2 Firestorm">T2 Firestorm</option>
-                                <option value="T2 Gamma">T2 Gamma</option>
-                                <option value="T2 Dark">T2 Dark</option>
-                                <option value="T2 Electrical">T2 Electrical</option>
-                            </optgroup>
-                            <optgroup label="Calm">
-                                <option value="T1 Exotic">T1 Exotic</option>
-                                <option value="T1 Firestorm">T1 Firestorm</option>
-                                <option value="T1 Gamma">T1 Gamma</option>
-                                <option value="T1 Dark">T1 Dark</option>
-                                <option value="T1 Electrical">T1 Electrical</option>
-                            </optgroup>
-                        </select>
+                        <div class="select-group">
+                            <div class="select-item">
+                                <h3 class="section-title-small">
+                                    <span class="section-icon-small">🎯</span>
+                                    어비셜 종류
+                                </h3>
+                                <select id="abyssal-type" class="modern-select">
+                                    <optgroup label="Cataclysmic">
+                                        <option value="T6 Exotic">T6 Exotic</option>
+                                        <option value="T6 Firestorm">T6 Firestorm</option>
+                                        <option value="T6 Gamma">T6 Gamma</option>
+                                        <option value="T6 Dark">T6 Dark</option>
+                                        <option value="T6 Electrical">T6 Electrical</option>
+                                    </optgroup>
+                                    <optgroup label="Chaotic">
+                                        <option value="T5 Exotic">T5 Exotic</option>
+                                        <option value="T5 Firestorm">T5 Firestorm</option>
+                                        <option value="T5 Gamma">T5 Gamma</option>
+                                        <option value="T5 Dark">T5 Dark</option>
+                                        <option value="T5 Electrical">T5 Electrical</option>
+                                    </optgroup>
+                                    <optgroup label="Raging">
+                                        <option value="T4 Exotic">T4 Exotic</option>
+                                        <option value="T4 Firestorm">T4 Firestorm</option>
+                                        <option value="T4 Gamma">T4 Gamma</option>
+                                        <option value="T4 Dark">T4 Dark</option>
+                                        <option value="T4 Electrical">T4 Electrical</option>
+                                    </optgroup>
+                                    <optgroup label="Fierce">
+                                        <option value="T3 Exotic">T3 Exotic</option>
+                                        <option value="T3 Firestorm">T3 Firestorm</option>
+                                        <option value="T3 Gamma">T3 Gamma</option>
+                                        <option value="T3 Dark">T3 Dark</option>
+                                        <option value="T3 Electrical">T3 Electrical</option>
+                                    </optgroup>
+                                    <optgroup label="Agitated">
+                                        <option value="T2 Exotic">T2 Exotic</option>
+                                        <option value="T2 Firestorm">T2 Firestorm</option>
+                                        <option value="T2 Gamma">T2 Gamma</option>
+                                        <option value="T2 Dark">T2 Dark</option>
+                                        <option value="T2 Electrical">T2 Electrical</option>
+                                    </optgroup>
+                                    <optgroup label="Calm">
+                                        <option value="T1 Exotic">T1 Exotic</option>
+                                        <option value="T1 Firestorm">T1 Firestorm</option>
+                                        <option value="T1 Gamma">T1 Gamma</option>
+                                        <option value="T1 Dark">T1 Dark</option>
+                                        <option value="T1 Electrical">T1 Electrical</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                            <div class="select-item">
+                                <h3 class="section-title-small">
+                                    <span class="section-icon-small">🚢</span>
+                                    함급
+                                </h3>
+                                <select id="ship-class" class="modern-select">
+                                    <option value="3">프리깃 (필라멘트 3개)</option>
+                                    <option value="2">디스트로이어 (필라멘트 2개)</option>
+                                    <option value="1" selected>크루저 (필라멘트 1개)</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                 </div>
+
+
 
                 <div class="form-section">
                     <h3 class="section-title">
@@ -625,7 +663,37 @@ Compressed Spodumain* 3
             document.getElementById('item-count').textContent = `${lines.length}개 라인`;
         }
 
+
+
         
+
+        // UI 설정 로드
+        async function loadUiConfig() {
+            try {
+                const uiConfig = await invoke('get_ui_config');
+                document.getElementById('abyssal-type').value = uiConfig.last_abyssal_type;
+                document.getElementById('ship-class').value = uiConfig.last_ship_class.toString();
+                console.log('UI 설정 로드 완료:', uiConfig);
+            } catch (error) {
+                console.warn('UI 설정 로드 실패:', error);
+                // 기본값 사용
+            }
+        }
+
+        // UI 설정 저장
+        async function saveUiConfig() {
+            try {
+                const abyssalType = document.getElementById('abyssal-type').value;
+                const shipClass = parseInt(document.getElementById('ship-class').value);
+                await invoke('set_ui_preferences', {
+                    abyssalType,
+                    shipClass
+                });
+                console.log('UI 설정 저장 완료:', { abyssalType, shipClass });
+            } catch (error) {
+                console.warn('UI 설정 저장 실패:', error);
+            }
+        }
 
         // 윈도우가 로드되면 런 데이터 가져오기
         window.addEventListener('DOMContentLoaded', async () => {
@@ -643,6 +711,9 @@ Compressed Spodumain* 3
                     document.getElementById('start-time').textContent = startTime;
                     document.getElementById('end-time').textContent = endTime;
                     document.getElementById('duration').textContent = duration;
+                    
+                    // UI 설정 로드
+                    await loadUiConfig();
                     
                     // 로딩 숨기고 폼 표시
                     document.getElementById('loading').style.display = 'none';
@@ -700,11 +771,13 @@ Compressed Spodumain* 3
 
                 const abyssalType = document.getElementById('abyssal-type').value;
                 const items = document.getElementById('acquired-items').value.trim();
+                const shipClass = parseInt(document.getElementById('ship-class').value);
                 
                 try {
                     console.log('Saving abyssal result:', {
                         type: abyssalType,
                         items: items,
+                        shipClass: shipClass,
                         start: runData.startTime,
                         end: runData.endTime,
                         duration: runData.duration
@@ -715,7 +788,8 @@ Compressed Spodumain* 3
                         items,
                         startTime: runData.startTime,
                         endTime: runData.endTime,
-                        duration: runData.duration
+                        duration: runData.duration,
+                        shipClass
                     });
                     
                     console.log('Successfully saved abyssal result');
@@ -728,6 +802,12 @@ Compressed Spodumain* 3
 
                         // 텍스트 에어리어 변경 시 아이템 카운트 업데이트
              document.getElementById('acquired-items').addEventListener('input', updateItemCount);
+
+            // 어비셜 종류와 함급 변경 시 설정 저장
+            document.getElementById('abyssal-type').addEventListener('change', saveUiConfig);
+            document.getElementById('ship-class').addEventListener('change', saveUiConfig);
+
+
 
             // 키보드 단축키
             document.addEventListener('keydown', (e) => {

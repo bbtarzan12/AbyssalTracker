@@ -6,6 +6,7 @@ use polars::prelude::*;
 use regex::Regex;
 use chrono::{DateTime, Local};
 use std::ops::{BitAnd, Not};
+use csv;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AbyssalResult {
@@ -19,6 +20,8 @@ pub struct AbyssalResult {
     pub run_time_minutes: f64,
     #[serde(rename = "어비셜 종류")]
     pub abyssal_type: String,
+    #[serde(rename = "함급")]
+    pub ship_class: i32,
     #[serde(rename = "획득 아이템")]
     pub acquired_items: String,
 }
@@ -73,12 +76,54 @@ impl AbyssalDataManager {
             
             if let Some(file_name) = path.file_name().and_then(|n| n.to_str()) {
                 if file_name.starts_with("abyssal_results_") && file_name.ends_with(".csv") {
+                    // 기존 CSV 파일의 헤더를 먼저 확인
+                    let mut csv_reader = csv::Reader::from_path(&path)
+                        .map_err(|e| format!("Failed to open CSV file {}: {}", file_name, e))?;
+                    
+                    let headers = csv_reader.headers()
+                        .map_err(|e| format!("Failed to read CSV headers from {}: {}", file_name, e))?
+                        .clone();
+                    
+                    let has_ship_class = headers.iter().any(|h| h == "함급");
+                    
+                    // Polars로 CSV 읽기 (더 관대한 설정 사용)
                     match CsvReader::from_path(&path)
                         .map_err(|e| format!("Failed to open data file {}: {}", file_name, e))?
                         .has_header(true)
+                        .with_ignore_errors(true)  // 에러 무시하고 계속 읽기
                         .finish()
                     {
-                        Ok(df) => all_dataframes.push(df),
+                        Ok(mut df) => {
+                            println!("File: {}, has_ship_class: {}, df.column('함급'): {:?}", 
+                                    file_name, has_ship_class, df.column("함급").map(|col| col.dtype()));
+                            
+                            // 함급 컬럼이 없으면 기본값 1로 추가 (기존 CSV와의 호환성)
+                            if !has_ship_class || df.column("함급").is_err() {
+                                println!("Adding default ship_class column to {}", file_name);
+                                df = df.lazy().with_column(lit(1i32).alias("함급")).collect()
+                                    .map_err(|e| format!("Failed to add ship_class column: {}", e))?;
+                            } else {
+                                // 함급 컬럼이 있는 경우 값들을 출력해보기
+                                if let Ok(ship_class_col) = df.column("함급") {
+                                    println!("Ship class column data type: {:?}", ship_class_col.dtype());
+                                    println!("First 5 ship class values: {:?}", ship_class_col.slice(0, 5));
+                                }
+                            }
+                            
+                            // 컬럼 순서를 일관되게 맞추기
+                            df = df.select([
+                                "시작시각(KST)",
+                                "종료시각(KST)",
+                                "런 소요(초)",
+                                "런 소요(분)",
+                                "어비셜 종류",
+                                "함급",
+                                "획득 아이템",
+                            ])
+                            .map_err(|e| format!("Failed to reorder columns: {}", e))?;
+                            
+                            all_dataframes.push(df);
+                        },
                         Err(e) => eprintln!("Warning: Failed to read CSV {}: {}", file_name, e),
                     }
                 }
@@ -93,6 +138,7 @@ impl AbyssalDataManager {
                 Series::new("런 소요(초)", Vec::<f64>::new()),
                 Series::new("런 소요(분)", Vec::<f64>::new()),
                 Series::new("어비셜 종류", Vec::<String>::new()),
+                Series::new("함급", Vec::<i32>::new()),
                 Series::new("획득 아이템", Vec::<String>::new()),
             ]).map_err(|e| format!("Failed to create empty DataFrame: {}", e))?);
         }
@@ -105,15 +151,18 @@ impl AbyssalDataManager {
         Ok(combined_df)
     }
 
-    pub fn save_abyssal_result(&self, start_time: DateTime<Local>, end_time: DateTime<Local>, acquired_items: String, abyssal_type: String) -> Result<(), String> {
+    pub fn save_abyssal_result(&self, start_time: DateTime<Local>, end_time: DateTime<Local>, acquired_items: String, abyssal_type: String, ship_class: i32) -> Result<(), String> {
         let items = acquired_items.trim();
         
-        if items.is_empty() {
-            return Ok(()); // Python과 동일: 아이템이 없으면 저장하지 않음
-        }
+        // 빈 아이템이어도 저장 - 아무것도 얻지 못한 런도 기록
+        let items = if items.is_empty() {
+            ""  // 빈 문자열로 저장
+        } else {
+            items
+        };
 
-        // 아이템 파싱 테스트
-        let parsed_items = self.parse_items(items);
+        // 아이템 파싱 테스트 (빈 아이템도 허용)
+        let _parsed_items = self.parse_items(items);
 
         // data 디렉토리 생성
         fs::create_dir_all(&self.data_dir_path)
@@ -134,48 +183,108 @@ impl AbyssalDataManager {
         // 아이템 문자열 정규화 (Python과 일치)
         let items = items.replace('\n', "; ").replace('\r', "");
         
-        // 새 행 데이터 생성 (Python과 정확히 일치)
+        // 새 행 데이터 생성 (구조체 필드 순서와 일치)
         let new_row_df = DataFrame::new(vec![
             Series::new("시작시각(KST)", &[start_time.format("%Y-%m-%d %H:%M:%S").to_string()]),
             Series::new("종료시각(KST)", &[end_time.format("%Y-%m-%d %H:%M:%S").to_string()]),
             Series::new("런 소요(초)", &[duration_sec as i64]),
             Series::new("런 소요(분)", &[duration_min]),
             Series::new("어비셜 종류", &[abyssal_type.clone()]),
+            Series::new("함급", &[ship_class]),
             Series::new("획득 아이템", &[items.clone()]),
         ]).map_err(|e| format!("Failed to create new row DataFrame: {}", e))?;
 
         if file_exists {
+            // 기존 파일의 헤더를 먼저 확인
+            let mut csv_reader = csv::Reader::from_path(&data_file_path)
+                .map_err(|e| format!("Failed to open existing CSV file: {}", e))?;
+            
+            let headers = csv_reader.headers()
+                .map_err(|e| format!("Failed to read CSV headers: {}", e))?
+                .clone();
+            
+            let has_ship_class = headers.iter().any(|h| h == "함급");
+            
             // 기존 파일에 추가
             let mut existing_df = CsvReader::from_path(&data_file_path)
                 .map_err(|e| format!("Failed to open existing data file: {}", e))?
                 .has_header(true)
+                .with_ignore_errors(true)  // 에러 무시하고 계속 읽기
                 .finish()
                 .map_err(|e| format!("Failed to read existing CSV: {}", e))?;
 
+            // 기존 파일에 함급 컬럼이 없으면 기본값 1로 추가
+            if !has_ship_class || existing_df.column("함급").is_err() {
+                println!("Adding default ship_class column to existing file");
+                existing_df = existing_df.lazy().with_column(lit(1i32).alias("함급")).collect()
+                    .map_err(|e| format!("Failed to add ship_class column to existing data: {}", e))?;
+            }
+            
+            // 컬럼 순서를 일관되게 맞추기
+            existing_df = existing_df.select([
+                "시작시각(KST)",
+                "종료시각(KST)",
+                "런 소요(초)",
+                "런 소요(분)",
+                "어비셜 종류",
+                "함급",
+                "획득 아이템",
+            ])
+            .map_err(|e| format!("Failed to reorder existing columns: {}", e))?;
+
             // 기존 파일의 스키마와 맞추기 위해 타입 변환
-            let new_row_df = if let Ok(existing_seconds_col) = existing_df.column("런 소요(초)") {
-                match existing_seconds_col.dtype() {
-                    polars::datatypes::DataType::Int64 => {
-                        // 이미 i64로 되어 있으면 그대로
-                        new_row_df
-                    },
-                    polars::datatypes::DataType::Float64 => {
-                        // 기존이 Float64면 새 데이터도 Float64로
-                        DataFrame::new(vec![
-                            Series::new("시작시각(KST)", &[start_time.format("%Y-%m-%d %H:%M:%S").to_string()]),
-                            Series::new("종료시각(KST)", &[end_time.format("%Y-%m-%d %H:%M:%S").to_string()]),
-                            Series::new("런 소요(초)", &[duration_sec]),  // Float64로
-                            Series::new("런 소요(분)", &[duration_min]),
-                            Series::new("어비셜 종류", &[abyssal_type.clone()]),
-                            Series::new("획득 아이템", &[items.clone()]),
-                        ]).map_err(|e| format!("Failed to create Float64 DataFrame: {}", e))?
-                    },
-                    _ => {
-                        new_row_df
+            let new_row_df = {
+                let mut needs_float64_seconds = false;
+                let mut needs_int64_ship_class = false;
+                
+                // "런 소요(초)" 컬럼 타입 체크
+                if let Ok(existing_seconds_col) = existing_df.column("런 소요(초)") {
+                    if matches!(existing_seconds_col.dtype(), polars::datatypes::DataType::Float64) {
+                        needs_float64_seconds = true;
                     }
                 }
-            } else {
-                new_row_df
+                
+                // "함급" 컬럼 타입 체크
+                if let Ok(existing_ship_class_col) = existing_df.column("함급") {
+                    if matches!(existing_ship_class_col.dtype(), polars::datatypes::DataType::Int64) {
+                        needs_int64_ship_class = true;
+                    }
+                }
+                
+                // 타입 변환이 필요한 경우 새로운 DataFrame 생성
+                if needs_float64_seconds || needs_int64_ship_class {
+                    let seconds_value: Box<dyn std::any::Any> = if needs_float64_seconds {
+                        Box::new(duration_sec) // Float64
+                    } else {
+                        Box::new(duration_sec as i64) // Int64
+                    };
+                    
+                    let ship_class_value: Box<dyn std::any::Any> = if needs_int64_ship_class {
+                        Box::new(ship_class as i64) // Int64
+                    } else {
+                        Box::new(ship_class) // Int32
+                    };
+                    
+                    DataFrame::new(vec![
+                        Series::new("시작시각(KST)", &[start_time.format("%Y-%m-%d %H:%M:%S").to_string()]),
+                        Series::new("종료시각(KST)", &[end_time.format("%Y-%m-%d %H:%M:%S").to_string()]),
+                        if needs_float64_seconds {
+                            Series::new("런 소요(초)", &[duration_sec])  // Float64
+                        } else {
+                            Series::new("런 소요(초)", &[duration_sec as i64])  // Int64
+                        },
+                        Series::new("런 소요(분)", &[duration_min]),
+                        Series::new("어비셜 종류", &[abyssal_type.clone()]),
+                        if needs_int64_ship_class {
+                            Series::new("함급", &[ship_class as i64])  // Int64
+                        } else {
+                            Series::new("함급", &[ship_class])  // Int32
+                        },
+                        Series::new("획득 아이템", &[items.clone()]),
+                    ]).map_err(|e| format!("Failed to create type-matched DataFrame: {}", e))?
+                } else {
+                    new_row_df
+                }
             };
 
             existing_df = existing_df.vstack(&new_row_df)

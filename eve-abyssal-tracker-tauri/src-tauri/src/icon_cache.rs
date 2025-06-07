@@ -38,9 +38,9 @@ impl IconCache {
                 }
             }
             
-            println!("[INFO] Loaded {} type IDs from cache", self.type_id_cache.len());
+            println!("[INFO] IconCache loaded {} type IDs from cache", self.type_id_cache.len());
         } else {
-            println!("[ERROR] typeid_cache.json not found at: {:?}", cache_file);
+            println!("[WARNING] typeid_cache.json not found at: {:?}, will be created when needed", cache_file);
         }
         
         Ok(())
@@ -76,15 +76,14 @@ impl IconCache {
     }
 
     pub async fn get_best_image_url(&self, type_id: u32, item_name: &str) -> Result<String> {
-        // 아이템 이름에 Blueprint가 포함되어 있으면 bp 사용
-        let image_type = if item_name.contains("Blueprint") {
-            "bp"
+        // 아이템 이름에 Blueprint가 있으면 bp, 아니면 icon
+        if item_name.contains("Blueprint") {
+            let bp_url = format!("https://images.evetech.net/types/{}/bp", type_id);
+            Ok(bp_url)
         } else {
-            "icon"
-        };
-        
-        let url = format!("https://images.evetech.net/types/{}/{}", type_id, image_type);
-        Ok(url)
+            let icon_url = format!("https://images.evetech.net/types/{}/icon", type_id);
+            Ok(icon_url)
+        }
     }
 
     pub fn get_icon_url(&self, type_id: u32) -> String {

@@ -35,12 +35,15 @@ interface OverallStatsDisplayProps {
 const OverallStatsDisplay: React.FC<OverallStatsDisplayProps> = ({ df, overall_stats }) => {
   // 금액 포맷팅 함수
   const formatISK = (amount: number): string => {
-    if (amount >= 1000000000) { // 1billion 이상
-      return `${(amount / 1000000000).toFixed(2)}b`;
-    } else if (amount >= 1000000) { // 1million 이상
-      return `${(amount / 1000000).toFixed(1)}m`;
+    const absAmount = Math.abs(amount);
+    const sign = amount < 0 ? '-' : '';
+    
+    if (absAmount >= 1000000000) { // 1billion 이상
+      return `${sign}${(absAmount / 1000000000).toFixed(2)}b`;
+    } else if (absAmount >= 1000000) { // 1million 이상
+      return `${sign}${(absAmount / 1000000).toFixed(1)}m`;
     } else { // 1million 미만
-      return `${Math.round(amount).toLocaleString()}`;
+      return `${sign}${Math.round(absAmount).toLocaleString()}`;
     }
   };
 

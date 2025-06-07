@@ -115,30 +115,7 @@ const Settings: React.FC<SettingsProps> = ({ logMonitorRunning, setLogMonitorRun
     }
   };
 
-  const handleCheckUpdate = async () => {
-    try {
-      const updateResult = await invoke("check_for_updates") as string;
-      if (updateResult.includes("업데이트 가능")) {
-        triggerPopup("업데이트 확인", updateResult, "info");
-      } else {
-        triggerPopup("업데이트 확인", updateResult, "info");
-      }
-    } catch (e) {
-      console.error("Failed to check updates:", e);
-      triggerPopup("업데이트 확인 실패", `업데이트 확인에 실패했습니다: ${e}`, "error");
-    }
-  };
 
-  const handleInstallUpdate = async () => {
-    try {
-      triggerPopup("업데이트 설치 중", "새 버전을 다운로드하고 설치하는 중입니다...", "info");
-      const installResult = await invoke("install_update") as string;
-      triggerPopup("업데이트 완료", installResult, "info");
-    } catch (e) {
-      console.error("Failed to install update:", e);
-      triggerPopup("업데이트 설치 실패", `업데이트 설치에 실패했습니다: ${e}`, "error");
-    }
-  };
 
 
 
@@ -292,56 +269,7 @@ const Settings: React.FC<SettingsProps> = ({ logMonitorRunning, setLogMonitorRun
           </div>
         </div>
 
-        {/* Update Control */}
-        <div className="config-section">
-          <div className="section-header">
-            <div className="section-icon">🔄</div>
-            <div className="section-info">
-              <h2 className="section-title">🔄 애플리케이션 업데이트</h2>
-              <p className="section-description">새 버전 확인 및 업데이트 설치</p>
-            </div>
-          </div>
 
-          <div className="control-grid">
-            <div className="control-card">
-              <div className="card-header">
-                <div className="card-icon">🔍</div>
-                <div className="card-title">업데이트 확인</div>
-              </div>
-              <div className="card-content">
-                <p className="card-description">
-                  GitHub에서 새로운 버전이 있는지 확인합니다
-                </p>
-                <button
-                  onClick={handleCheckUpdate}
-                  className="control-button secondary"
-                >
-                  <span className="button-icon">🔍</span>
-                  <span className="button-text">업데이트 확인</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="control-card">
-              <div className="card-header">
-                <div className="card-icon">⬇️</div>
-                <div className="card-title">업데이트 설치</div>
-              </div>
-              <div className="card-content">
-                <p className="card-description">
-                  최신 버전을 다운로드하고 설치합니다 (앱이 자동으로 종료됩니다)
-                </p>
-                <button
-                  onClick={handleInstallUpdate}
-                  className="control-button primary"
-                >
-                  <span className="button-icon">⬇️</span>
-                  <span className="button-text">업데이트 설치</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
       <div className="settings-footer">

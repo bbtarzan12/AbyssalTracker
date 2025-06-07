@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { parseItems, aggregateItems, ItemIcon, RunTypeBadge } from './utils';
+import ShipClassIcon from './ShipClassIcon';
 import './DailyStatsDisplay.css';
 
 interface RunData {
@@ -9,6 +10,7 @@ interface RunData {
   '종료시각(KST)': string;
   '런 소요(분)': number;
   '어비셜 종류': string;
+  '함급': number;
   '실수익': number;
   'ISK/h': number;
   '획득 아이템': string;
@@ -45,12 +47,25 @@ const DailyStatsDisplay: React.FC<DailyStatsDisplayProps> = ({
 }) => {
   // 금액 포맷팅 함수
   const formatISK = (amount: number): string => {
-    if (amount >= 1000000000) { // 1billion 이상
-      return `${(amount / 1000000000).toFixed(2)}b`;
-    } else if (amount >= 1000000) { // 1million 이상
-      return `${(amount / 1000000).toFixed(1)}m`;
+    const absAmount = Math.abs(amount);
+    const sign = amount < 0 ? '-' : '';
+    
+    if (absAmount >= 1000000000) { // 1billion 이상
+      return `${sign}${(absAmount / 1000000000).toFixed(2)}b`;
+    } else if (absAmount >= 1000000) { // 1million 이상
+      return `${sign}${(absAmount / 1000000).toFixed(1)}m`;
     } else { // 1million 미만
-      return `${Math.round(amount).toLocaleString()}`;
+      return `${sign}${Math.round(absAmount).toLocaleString()}`;
+    }
+  };
+
+  // 함급 표시 함수
+  const getShipClassDisplay = (shipClass: number): string => {
+    switch (shipClass) {
+      case 3: return '프리깃 (3x)';
+      case 2: return '디스트로이어 (2x)';
+      case 1: return '크루저 (1x)';
+      default: return `등급 ${shipClass}`;
     }
   };
   
@@ -85,14 +100,8 @@ const DailyStatsDisplay: React.FC<DailyStatsDisplayProps> = ({
   };
 
   const handleDeleteRun = async (run: RunData) => {
-    const confirmed = window.confirm(
-      `이 런을 삭제하시겠습니까?\n\n시작: ${run['시작시각(KST)']}\n완료: ${run['종료시각(KST)']}\n수익: ${formatISK(run['실수익'])}`
-    );
-    
-    if (!confirmed) return;
-
     try {
-      // CSV에서만 삭제 (API 호출 없이)
+      // CSV에서만 삭제 (API 호출 없이) - 확인창 없이 바로 삭제
       await invoke('delete_abyssal_run_command', {
         startTimeKst: run['시작시각(KST)'],
         endTimeKst: run['종료시각(KST)']
@@ -110,6 +119,20 @@ const DailyStatsDisplay: React.FC<DailyStatsDisplayProps> = ({
     } catch (error) {
       console.error('[ERROR] Failed to delete run:', error);
       alert(`런 삭제에 실패했습니다: ${error}`);
+    }
+  };
+
+  const handleExportCSV = async () => {
+    try {
+      console.log('[INFO] Starting CSV export for date:', selectedDate);
+      await invoke('export_daily_analysis', {
+        selectedDate: selectedDate,
+        format: 'csv'
+      });
+      console.log('[INFO] CSV export completed successfully');
+    } catch (error) {
+      console.error('[ERROR] Failed to export CSV:', error);
+      alert(`CSV 내보내기에 실패했습니다: ${error}`);
     }
   };
 
@@ -168,6 +191,10 @@ const DailyStatsDisplay: React.FC<DailyStatsDisplayProps> = ({
         <div className="data-table-header">
           <h3 className="table-title">🚀 런 상세 정보</h3>
           <div className="table-actions">
+            <button className="export-btn" onClick={handleExportCSV}>
+              <span>📤</span>
+              CSV 내보내기
+            </button>
             <button className="toolbar-btn" onClick={() => setExpandedRuns({})}>
               <span>📋</span>
               모두 접기
@@ -187,6 +214,12 @@ const DailyStatsDisplay: React.FC<DailyStatsDisplayProps> = ({
                   <div className="run-meta">
                     <div className="run-time-badge">
                       {run['시작시각(KST)'].split(' ')[1]?.substring(0, 5)}
+                    </div>
+                    <div className="ship-class-badge">
+                      <ShipClassIcon 
+                        shipClass={run['함급'] || 1} 
+                        size={16} 
+                      />
                     </div>
                     <RunTypeBadge abyssalType={run['어비셜 종류']} />
                   </div>
@@ -236,6 +269,13 @@ const DailyStatsDisplay: React.FC<DailyStatsDisplayProps> = ({
                         <div className="timeline-content">
                           <div className="timeline-title">완료</div>
                           <div className="timeline-time">{run['종료시각(KST)']}</div>
+                        </div>
+                      </div>
+                      <div className="timeline-item">
+                        <div className="timeline-icon">🚢</div>
+                        <div className="timeline-content">
+                          <div className="timeline-title">함급</div>
+                          <div className="timeline-time">{getShipClassDisplay(run['함급'] || 1)}</div>
                         </div>
                       </div>
                       <div className="timeline-item">

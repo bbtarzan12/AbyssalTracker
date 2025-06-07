@@ -12,21 +12,7 @@
   user-select: none;
 }
 
-.titlebar::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, var(--accent-bg), var(--success), var(--warning), var(--accent-bg));
-  animation: shimmer 3s ease-in-out infinite;
-}
 
-@keyframes shimmer {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
-}
 
 .titlebar-drag-region {
   flex: 1;

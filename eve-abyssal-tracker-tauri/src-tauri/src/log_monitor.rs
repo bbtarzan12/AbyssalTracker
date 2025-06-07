@@ -209,11 +209,19 @@ impl LogMonitor {
                     latest_path.file_name().unwrap_or_default().to_string_lossy());
                 self.log_file = Some(latest_path.clone());
                 
-                // 파일 크기와 라인 카운트 재설정
+                // 파일 크기와 라인 카운트 재설정 - 끝부터 시작
                 if let Ok(metadata) = tokio::fs::metadata(&latest_path).await {
                     self.last_position = metadata.len();
+                    
+                    // 새 파일도 끝부터 모니터링
+                    let file_content = tokio::fs::read(&latest_path).await.unwrap_or_default();
+                    let (cow, _, _) = UTF_16LE.decode(&file_content);
+                    let content = cow.into_owned();
+                    let lines: Vec<&str> = content.lines().collect();
+                    self.last_line_count = lines.len();
+                } else {
+                    self.last_line_count = 0;
                 }
-                self.last_line_count = 0; // 새 파일이므로 라인 카운트 재설정
                 
                 if let Some(ref callback) = self.on_log_file_change {
                     callback();
@@ -255,8 +263,16 @@ impl LogMonitor {
                             
                             if let Ok(metadata) = tokio::fs::metadata(log_file).await {
                                 monitor.last_position = metadata.len();
+                                
+                                // 파일 끝부터 모니터링 시작
+                                let file_content = tokio::fs::read(log_file).await.unwrap_or_default();
+                                let (cow, _, _) = UTF_16LE.decode(&file_content);
+                                let content = cow.into_owned();
+                                let lines: Vec<&str> = content.lines().collect();
+                                monitor.last_line_count = lines.len();
+                            } else {
+                                monitor.last_line_count = 0;
                             }
-                            monitor.last_line_count = 0;
                         } else {
                             println!("[INFO] Waiting for a suitable log file...");
                             tokio::time::sleep(Duration::from_secs(5)).await;
@@ -278,10 +294,18 @@ impl LogMonitor {
                                     let latest = monitor.find_latest_local_log().await;
                                     if let Some(latest_path) = latest {
                                         monitor.log_file = Some(latest_path.clone());
-                                        if let Ok(metadata) = tokio::fs::metadata(&latest_path).await {
-                                            monitor.last_position = metadata.len();
-                                        }
-                                        monitor.last_line_count = 0;
+                                                                if let Ok(metadata) = tokio::fs::metadata(&latest_path).await {
+                            monitor.last_position = metadata.len();
+                            
+                            // 새 파일을 끝부터 모니터링하도록 설정
+                            let file_content = tokio::fs::read(&latest_path).await.unwrap_or_default();
+                            let (cow, _, _) = UTF_16LE.decode(&file_content);
+                            let content = cow.into_owned();
+                            let lines: Vec<&str> = content.lines().collect();
+                            monitor.last_line_count = lines.len();
+                        } else {
+                            monitor.last_line_count = 0;
+                        }
                                     }
                                 }
                             }
@@ -303,6 +327,15 @@ impl LogMonitor {
         if let Some(ref log_file) = self.log_file {
             if let Ok(metadata) = tokio::fs::metadata(log_file).await {
                 self.last_position = metadata.len();
+                
+                // 파일 끝부터 시작하도록 현재 라인 수를 설정
+                let file_content = tokio::fs::read(log_file).await.unwrap_or_default();
+                let (cow, _, _) = UTF_16LE.decode(&file_content);
+                let content = cow.into_owned();
+                let lines: Vec<&str> = content.lines().collect();
+                self.last_line_count = lines.len();
+                
+                println!("[INFO] Starting monitoring from end of file (line {})", self.last_line_count);
             }
         }
 

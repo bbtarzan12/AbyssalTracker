@@ -1191,7 +1191,7 @@ checksum = "ca81e6b4777c89fd810c25a4be2b1bd93ea034fbe58e6a75216a34c6b82c539b"
 
 [[package]]
 name = "eve-abyssal-tracker-tauri"
-version = "1.0.1"
+version = "1.0.22"
 dependencies = [
  "anyhow",
  "chrono",

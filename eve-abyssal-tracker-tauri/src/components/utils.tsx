@@ -151,6 +151,8 @@ export const ItemIcon: React.FC<ItemIconProps> = ({ typeId, itemName, size = 32,
   const [iconSrc, setIconSrc] = React.useState<string>('');
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
+  const [retryCount, setRetryCount] = React.useState(0);
+  const [actualTypeId, setActualTypeId] = React.useState<number | null>(null);
 
   React.useEffect(() => {
     const loadIcon = async () => {
@@ -158,21 +160,23 @@ export const ItemIcon: React.FC<ItemIconProps> = ({ typeId, itemName, size = 32,
         setLoading(true);
         setError(false);
         
-        let actualTypeId = typeId;
+        let resolvedTypeId = typeId;
         
         // typeId가 없으면 itemName으로 조회
-        if (!actualTypeId) {
+        if (!resolvedTypeId) {
           const fetchedTypeId = await getItemTypeId(itemName);
           if (!fetchedTypeId) {
             setError(true);
             setLoading(false);
             return;
           }
-          actualTypeId = fetchedTypeId;
+          resolvedTypeId = fetchedTypeId;
         }
         
-        // 최적의 이미지 URL 가져오기 (Blueprint 이름 확인 후 icon/bp 선택)
-        const imageUrl = await getBestImageUrl(actualTypeId, itemName);
+        setActualTypeId(resolvedTypeId);
+        
+        // 최적의 이미지 URL 가져오기 (icon -> bp 폴백 로직이 백엔드에 구현됨)
+        const imageUrl = await getBestImageUrl(resolvedTypeId, itemName);
         setIconSrc(imageUrl);
       } catch (err) {
         console.error(`Failed to load icon for ${itemName}:`, err);
@@ -183,7 +187,18 @@ export const ItemIcon: React.FC<ItemIconProps> = ({ typeId, itemName, size = 32,
     };
 
     loadIcon();
-  }, [typeId, itemName]);
+  }, [typeId, itemName, retryCount]);
+
+  const handleImageError = React.useCallback(() => {
+    if (retryCount < 1 && actualTypeId) {
+      // 한 번만 bp로 재시도
+      const bpUrl = `https://images.evetech.net/types/${actualTypeId}/bp`;
+      setIconSrc(bpUrl);
+      setRetryCount(1);
+    } else {
+      setError(true);
+    }
+  }, [actualTypeId, retryCount]);
 
   if (loading) {
     return (
@@ -215,7 +230,7 @@ export const ItemIcon: React.FC<ItemIconProps> = ({ typeId, itemName, size = 32,
       title={itemName}
       className={`item-icon ${className}`}
       style={{ width: size, height: size, borderRadius: '4px' }}
-      onError={() => setError(true)}
+      onError={handleImageError}
     />
   );
 };

@@ -9,7 +9,7 @@ use tauri::{AppHandle, Manager};
 // Python과 동일한 상수값들
 const REGION_ID: u32 = 10000002; // The Forge
 const STATION_ID: u32 = 60003760; // Jita 4-4
-const CACHE_FILE: &str = "data/typeid_cache.json"; // Python과 동일한 경로
+const CACHE_FILE_NAME: &str = "typeid_cache.json"; // 파일명만 정의
 const PRICE_CACHE_FILE: &str = "data/price_cache.json"; // 가격 캐시 파일
 const PRICE_CACHE_TTL_SECONDS: u64 = 30 * 60; // 30분 TTL
 
@@ -70,17 +70,35 @@ pub struct EVEApi {
     client: Client,
     name_to_id_cache: Arc<Mutex<HashMap<String, u32>>>, // Python과 동일한 구조
     price_cache: Arc<Mutex<Option<CachedPriceData>>>, // 가격 캐시
+    data_dir: PathBuf, // 데이터 디렉토리 경로
 }
 
 impl EVEApi {
-    pub async fn new(_app_handle: &AppHandle) -> Result<Self> {
+    pub async fn new(app_handle: &AppHandle) -> Result<Self> {
         let name_to_id_cache = Arc::new(Mutex::new(HashMap::new()));
         let price_cache = Arc::new(Mutex::new(None));
+
+        let data_dir = match app_handle.path().app_data_dir() {
+            Ok(app_data_dir) => {
+                let data_dir = app_data_dir.join("data");
+                if let Err(e) = std::fs::create_dir_all(&data_dir) {
+                    eprintln!("Warning: Failed to create app data directory for EVEApi: {}", e);
+                    std::path::PathBuf::from("data")
+                } else {
+                    data_dir
+                }
+            },
+            Err(e) => {
+                eprintln!("Warning: Failed to get app data directory for EVEApi: {}, using local data directory", e);
+                std::path::PathBuf::from("data")
+            }
+        };
 
         let api = Self {
             client: Client::new(),
             name_to_id_cache,
             price_cache,
+            data_dir,
         };
 
         api.load_cache().await?;
@@ -89,25 +107,26 @@ impl EVEApi {
     }
 
     async fn load_cache(&self) -> Result<()> {
-        let cache_path = PathBuf::from(CACHE_FILE);
+        let cache_path = self.data_dir.join(CACHE_FILE_NAME);
         if cache_path.exists() {
             let content = fs::read_to_string(&cache_path).await?;
             let loaded_cache: HashMap<String, u32> = serde_json::from_str(&content)?;
+            let cache_len = loaded_cache.len();
             *self.name_to_id_cache.lock().await = loaded_cache;
+            println!("[INFO] EVEApi loaded {} type IDs from cache", cache_len);
         }
         Ok(())
     }
 
     async fn save_cache(&self) -> Result<()> {
-        let cache_path = PathBuf::from(CACHE_FILE);
+        let cache_path = self.data_dir.join(CACHE_FILE_NAME);
         
         // data 디렉토리 생성
-        if let Some(parent) = cache_path.parent() {
-            fs::create_dir_all(parent).await?;
-        }
+        fs::create_dir_all(&self.data_dir).await?;
         
         let content = serde_json::to_string_pretty(&*self.name_to_id_cache.lock().await)?;
         fs::write(&cache_path, content).await?;
+        println!("[INFO] EVEApi saved {} type IDs to cache", self.name_to_id_cache.lock().await.len());
         Ok(())
     }
 
@@ -340,12 +359,14 @@ impl EVEApi {
 
 #[tauri::command]
 pub async fn get_type_ids(app_handle: AppHandle, item_names: Vec<String>) -> Result<HashMap<String, u32>, String> {
-    let eve_api = app_handle.state::<Arc<EVEApi>>();
-    eve_api.fetch_type_ids(item_names).await.map_err(|e| e.to_string())
+    let eve_api = app_handle.state::<Arc<Mutex<EVEApi>>>();
+    let result = eve_api.lock().await.fetch_type_ids(item_names).await.map_err(|e| e.to_string());
+    result
 }
 
 #[tauri::command]
 pub async fn get_fuzzwork_prices(app_handle: AppHandle, type_ids: Vec<u32>) -> Result<HashMap<String, serde_json::Value>, String> {
-    let eve_api = app_handle.state::<Arc<EVEApi>>();
-    eve_api.fetch_fuzzwork_prices(type_ids).await.map_err(|e| e.to_string())
+    let eve_api = app_handle.state::<Arc<Mutex<EVEApi>>>();
+    let result = eve_api.lock().await.fetch_fuzzwork_prices(type_ids).await.map_err(|e| e.to_string());
+    result
 }

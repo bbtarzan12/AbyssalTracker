@@ -7,7 +7,7 @@ interface AbyssalResultModalProps {
   startTime: string;
   endTime: string;
   duration: string;
-  onSave: (abyssalType: string, items: string) => void;
+  onSave: (abyssalType: string, items: string, shipClass: number) => void;
   onCancel: () => void;
 }
 
@@ -33,12 +33,14 @@ const AbyssalResultModal: React.FC<AbyssalResultModalProps> = ({
 }) => {
   const [selectedType, setSelectedType] = useState(DEFAULT_TYPE);
   const [items, setItems] = useState('');
+  const [shipClass, setShipClass] = useState(1); // 기본값: Cruiser (1배)
 
   if (!show) return null;
 
   const handleSave = () => {
-    onSave(selectedType, items.trim());
+    onSave(selectedType, items.trim(), shipClass);
     setItems(''); // 저장 후 초기화
+    setShipClass(1); // 함급도 초기화
   };
 
   return (
@@ -107,6 +109,30 @@ const AbyssalResultModal: React.FC<AbyssalResultModalProps> = ({
               </select>
               <div className="selected-type-preview">
                 <RunTypeBadge abyssalType={selectedType} />
+              </div>
+            </div>
+          </div>
+
+          <div className="form-section">
+            <h3 className="section-title">
+              <span className="section-icon">🚢</span>
+              선박 등급
+            </h3>
+            <div className="ship-class-selector">
+              <select
+                id="ship-class"
+                value={shipClass}
+                onChange={(e) => setShipClass(parseInt(e.target.value))}
+                className="modern-select"
+              >
+                <option value={3}>프리깃 (Frigate) - 필라멘트 3개</option>
+                <option value={2}>디스트로이어 (Destroyer) - 필라멘트 2개</option>
+                <option value={1}>크루저 (Cruiser) - 필라멘트 1개</option>
+              </select>
+              <div className="ship-class-info">
+                <span className="info-text">
+                  선박 등급에 따라 입장료가 {shipClass}배로 계산됩니다
+                </span>
               </div>
             </div>
           </div>

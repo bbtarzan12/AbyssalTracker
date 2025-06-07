@@ -39,7 +39,7 @@ async fn analyze_abyssal_data_command(app_handle: AppHandle) -> Result<AnalysisR
     {
         let mut analyzer = abyssal_data_analyzer.lock().await;
         if analyzer.app_handle.is_none() {
-            let eve_api = app_handle.state::<Arc<EVEApi>>();
+            let eve_api = app_handle.state::<Arc<Mutex<EVEApi>>>();
             let abyssal_data_manager = app_handle.state::<Arc<Mutex<AbyssalDataManager>>>();
             *analyzer = AbyssalDataAnalyzer::new(eve_api.inner().clone(), abyssal_data_manager.inner().clone())
                 .with_app_handle(app_handle.clone());
@@ -146,7 +146,8 @@ async fn save_abyssal_result_command(
     start_time: String, 
     end_time: String, 
     acquired_items: String, 
-    abyssal_type: String
+    abyssal_type: String,
+    ship_class: i32
 ) -> Result<(), String> {
     let abyssal_data_manager = app_handle.state::<Arc<Mutex<AbyssalDataManager>>>();
     
@@ -158,7 +159,7 @@ async fn save_abyssal_result_command(
         .map_err(|e| format!("Failed to parse end_time: {}", e))?
         .with_timezone(&chrono::Local);
     
-    let result = abyssal_data_manager.lock().await.save_abyssal_result(start_dt, end_dt, acquired_items, abyssal_type)
+    let result = abyssal_data_manager.lock().await.save_abyssal_result(start_dt, end_dt, acquired_items, abyssal_type, ship_class)
         .map_err(|e| e.to_string());
     result
 }
@@ -170,7 +171,8 @@ async fn save_abyssal_result(
     items: String,
     start_time: String,
     end_time: String,
-    _duration: String
+    _duration: String,
+    ship_class: i32
 ) -> Result<(), String> {
     let abyssal_data_manager = app_handle.state::<Arc<Mutex<AbyssalDataManager>>>();
     
@@ -186,7 +188,7 @@ async fn save_abyssal_result(
     let end_datetime = today.and_time(end_time_naive).and_local_timezone(chrono::Local).unwrap();
     
     let result = abyssal_data_manager.lock().await
-        .save_abyssal_result(start_datetime, end_datetime, items, abyssal_type)
+        .save_abyssal_result(start_datetime, end_datetime, items, abyssal_type, ship_class)
         .map_err(|e| e.to_string());
     
     match &result {
@@ -609,15 +611,16 @@ async fn export_daily_analysis(
         
         // CSV 형식으로 변환 (순수한 테이블 데이터만)
         let mut csv_content = String::new();
-        csv_content.push_str("시작시각(KST),종료시각(KST),런 소요(분),어비셜 종류,실수익,ISK/h,획득 아이템,드롭,입장료\n");
+        csv_content.push_str("시작시각(KST),종료시각(KST),런 소요(분),어비셜 종류,함급,실수익,ISK/h,획득 아이템,드롭,입장료\n");
         
         for run in &daily_data.runs {
             csv_content.push_str(&format!(
-                "{},{},{},{},{},{},{},{},{}\n",
+                "{},{},{},{},{},{},{},{},{},{}\n",
                 run.start_time,
                 run.end_time,
                 run.run_time_minutes,
                 run.abyssal_type,
+                run.ship_class,
                 run.net_profit,
                 run.isk_per_hour,
                 run.acquired_items.replace(",", ";"), // CSV 구분자 충돌 방지
@@ -668,9 +671,9 @@ pub fn run() {
                 app_handle.manage(abyssal_data_manager.clone());
 
                 // 3. EVEApi 초기화
-                let eve_api = Arc::new(
+                let eve_api = Arc::new(Mutex::new(
                     EVEApi::new(&app_handle).await.expect("Failed to initialize EVEApi")
-                );
+                ));
                 app_handle.manage(eve_api.clone());
 
                 // 4. IconCache 초기화
@@ -838,6 +841,8 @@ pub fn run() {
             config_manager::get_config,
             config_manager::set_log_path,
             config_manager::set_character_name,
+            config_manager::get_ui_config,
+            config_manager::set_ui_preferences,
             load_abyssal_results_command,
             save_abyssal_result_command,
             save_abyssal_result,
