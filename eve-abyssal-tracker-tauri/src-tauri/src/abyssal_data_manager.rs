@@ -31,8 +31,24 @@ pub struct AbyssalDataManager {
 
 impl AbyssalDataManager {
     pub fn new(app_handle: AppHandle) -> Self {
-        // data 디렉토리만 사용 (Python과 일치)
-        let data_dir_path = PathBuf::from("data");
+        // 앱 데이터 디렉토리 사용 (설치된 앱에서 안전한 위치)
+        let data_dir_path = match app_handle.path().app_data_dir() {
+            Ok(app_data_dir) => {
+                let data_dir = app_data_dir.join("data");
+                // 디렉토리가 없으면 생성
+                if let Err(e) = std::fs::create_dir_all(&data_dir) {
+                    eprintln!("Warning: Failed to create app data directory: {}", e);
+                    // 실패 시 현재 디렉토리의 data 폴더 사용
+                    PathBuf::from("data")
+                } else {
+                    data_dir
+                }
+            },
+            Err(e) => {
+                eprintln!("Warning: Failed to get app data directory: {}, using local data directory", e);
+                PathBuf::from("data")
+            }
+        };
 
         AbyssalDataManager {
             app_handle,

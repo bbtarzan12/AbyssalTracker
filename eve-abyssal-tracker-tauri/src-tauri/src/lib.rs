@@ -575,8 +575,22 @@ pub fn run() {
                 app_handle.manage(eve_api.clone());
 
                 // 4. IconCache 초기화
-                // 실제 파일 위치는 eve-abyssal-tracker-tauri/src-tauri/data/typeid_cache.json
-                let data_dir = std::path::PathBuf::from("data");
+                // 앱 데이터 디렉토리 사용
+                let data_dir = match app_handle.path().app_data_dir() {
+                    Ok(app_data_dir) => {
+                        let data_dir = app_data_dir.join("data");
+                        if let Err(e) = std::fs::create_dir_all(&data_dir) {
+                            eprintln!("Warning: Failed to create app data directory for IconCache: {}", e);
+                            std::path::PathBuf::from("data")
+                        } else {
+                            data_dir
+                        }
+                    },
+                    Err(e) => {
+                        eprintln!("Warning: Failed to get app data directory for IconCache: {}, using local data directory", e);
+                        std::path::PathBuf::from("data")
+                    }
+                };
                 let mut icon_cache = IconCache::new(data_dir);
                 if let Err(e) = icon_cache.initialize().await {
                     eprintln!("Failed to initialize IconCache: {}", e);
