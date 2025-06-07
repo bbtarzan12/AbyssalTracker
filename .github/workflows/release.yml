@@ -7,6 +7,7 @@ on:
 
 env:
   TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+  TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
 jobs:
   windows-release:
@@ -26,14 +27,6 @@ jobs:
           cache: 'npm'
           cache-dependency-path: './eve-abyssal-tracker-tauri/package-lock.json'
 
-      - name: Cache Node.js modules
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
@@ -50,19 +43,19 @@ jobs:
             ~/.cargo/bin/cargo-tauri*
             ~/.cargo/.crates.toml
             ~/.cargo/.crates2.json
-          key: ${{ runner.os }}-tauri-cli-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-tauri-cli-${{ hashFiles('**/package.json') }}
           restore-keys: |
             ${{ runner.os }}-tauri-cli-
 
-      - name: Cache WiX and NSIS
+      - name: Cache Build Tools
         uses: actions/cache@v4
         with:
           path: |
-            C:\Program Files (x86)\WiX Toolset*
-            C:\Users\runneradmin\.local\share\nsis*
-          key: ${{ runner.os }}-wix-nsis-toolset
+            ${{ runner.temp }}/tauri-wix
+            ${{ runner.temp }}/tauri-nsis
+          key: ${{ runner.os }}-build-tools-v1
           restore-keys: |
-            ${{ runner.os }}-wix-nsis-
+            ${{ runner.os }}-build-tools-
 
       - name: Install dependencies
         working-directory: ./eve-abyssal-tracker-tauri
