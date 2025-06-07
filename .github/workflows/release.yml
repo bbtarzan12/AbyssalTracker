@@ -35,6 +35,7 @@ jobs:
         with:
           workspaces: './eve-abyssal-tracker-tauri/src-tauri -> target'
           cache-on-failure: true
+          shared-key: "windows-release"
 
       - name: Cache Tauri CLI
         uses: actions/cache@v4
@@ -43,7 +44,7 @@ jobs:
             ~/.cargo/bin/cargo-tauri*
             ~/.cargo/.crates.toml
             ~/.cargo/.crates2.json
-          key: ${{ runner.os }}-tauri-cli-${{ hashFiles('**/package.json') }}
+          key: ${{ runner.os }}-tauri-cli-${{ hashFiles('./eve-abyssal-tracker-tauri/package.json') }}
           restore-keys: |
             ${{ runner.os }}-tauri-cli-
 
@@ -51,11 +52,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ${{ runner.temp }}/tauri-wix
-            ${{ runner.temp }}/tauri-nsis
-          key: ${{ runner.os }}-build-tools-v1
+            ~/.tauri
+          key: ${{ runner.os }}-tauri-tools-v2
           restore-keys: |
-            ${{ runner.os }}-build-tools-
+            ${{ runner.os }}-tauri-tools-
 
       - name: Install dependencies
         working-directory: ./eve-abyssal-tracker-tauri
@@ -70,20 +70,6 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: 'EVE Abyssal Tracker v__VERSION__ (Windows)'
           releaseBody: |
-            ## 🚀 EVE Abyssal Tracker Windows 릴리스
-            
-            ### 📥 설치 방법
-            1. 아래 Assets에서 `.msi` 파일을 다운로드하세요
-            2. 다운로드한 파일을 실행하여 설치
-            
-            ### 🔄 자동 업데이트
-            - 애플리케이션 내 설정 탭에서 업데이트 확인 가능
-            - 새 버전 발견 시 자동 다운로드 및 설치
-            
-            ### ✨ 주요 기능
-            - EVE Online 어비셜 런 자동 추적
-            - 실시간 수익 분석
-            - 일별/전체 통계
-            - 아이템 가격 자동 조회
+            ## EVE Abyssal Tracker v${{ needs.build.outputs.version }}
           releaseDraft: false
           prerelease: false 
