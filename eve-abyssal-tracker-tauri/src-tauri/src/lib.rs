@@ -375,6 +375,17 @@ async fn check_for_updates(app_handle: AppHandle) -> Result<String, String> {
         }
     };
     
+    println!("[DEBUG] Version comparison - Current: '{}', Latest: '{}'", current_version, latest_version);
+    
+    // 수동 버전 비교 (semantic version)
+    let needs_update = if latest_version != "unknown" {
+        compare_versions(&current_version, &latest_version)
+    } else {
+        false
+    };
+    
+    println!("[DEBUG] Manual version comparison result: needs_update = {}", needs_update);
+    
     match app_handle.updater_builder().build() {
         Ok(updater) => {
             match updater.check().await {
@@ -383,17 +394,67 @@ async fn check_for_updates(app_handle: AppHandle) -> Result<String, String> {
                     Ok(format!("업데이트 가능: 버전 {}", update.version))
                 },
                 Ok(None) => {
-                    println!("[INFO] No updates available - Current: {}, Latest: {} (already up to date)", current_version, latest_version);
-                    Ok("최신 버전입니다".to_string())
+                    // Tauri 업데이터가 업데이트 없다고 하더라도, 수동 비교로 확인
+                    if needs_update {
+                        println!("[INFO] Manual check detected update needed - Current: {}, Latest: {}", current_version, latest_version);
+                        Ok(format!("업데이트 가능: 버전 {}", latest_version))
+                    } else {
+                        println!("[INFO] No updates available - Current: {}, Latest: {} (already up to date)", current_version, latest_version);
+                        Ok("최신 버전입니다".to_string())
+                    }
                 },
                 Err(e) => {
-                    println!("[ERROR] Failed to check for updates - Current: {}, Latest: {}, Error: {}", current_version, latest_version, e);
-                    Err(format!("업데이트 확인 실패: {}", e))
+                    // Tauri 업데이터 오류 시에도 수동 비교로 확인
+                    if needs_update {
+                        println!("[INFO] Updater failed but manual check detected update - Current: {}, Latest: {}", current_version, latest_version);
+                        Ok(format!("업데이트 가능: 버전 {}", latest_version))
+                    } else {
+                        println!("[ERROR] Failed to check for updates - Current: {}, Latest: {}, Error: {}", current_version, latest_version, e);
+                        Err(format!("업데이트 확인 실패: {}", e))
+                    }
                 }
             }
         },
-        Err(e) => Err(format!("Updater initialization failed: {}", e))
+        Err(e) => {
+            // 업데이터 초기화 실패 시에도 수동 비교로 확인
+            if needs_update {
+                println!("[INFO] Updater init failed but manual check detected update - Current: {}, Latest: {}", current_version, latest_version);
+                Ok(format!("업데이트 가능: 버전 {}", latest_version))
+            } else {
+                Err(format!("Updater initialization failed: {}", e))
+            }
+        }
     }
+}
+
+// 버전 비교 함수 (semantic version)
+fn compare_versions(current: &str, latest: &str) -> bool {
+    fn parse_version(version: &str) -> Vec<u32> {
+        version.split('.')
+            .map(|s| s.parse::<u32>().unwrap_or(0))
+            .collect()
+    }
+    
+    let current_parts = parse_version(current);
+    let latest_parts = parse_version(latest);
+    
+    println!("[DEBUG] Parsed versions - Current: {:?}, Latest: {:?}", current_parts, latest_parts);
+    
+    for i in 0..std::cmp::max(current_parts.len(), latest_parts.len()) {
+        let current_part = current_parts.get(i).unwrap_or(&0);
+        let latest_part = latest_parts.get(i).unwrap_or(&0);
+        
+        if latest_part > current_part {
+            println!("[DEBUG] Update needed: latest part {} > current part {} at position {}", latest_part, current_part, i);
+            return true;
+        } else if latest_part < current_part {
+            println!("[DEBUG] No update needed: latest part {} < current part {} at position {}", latest_part, current_part, i);
+            return false;
+        }
+    }
+    
+    println!("[DEBUG] Versions are equal");
+    false
 }
 
 async fn get_latest_github_version() -> Result<String, String> {
@@ -438,6 +499,25 @@ async fn install_update(app_handle: AppHandle) -> Result<String, String> {
     
     let current_version = app_handle.package_info().version.to_string();
     
+    // GitHub API를 통해 최신 버전 정보 가져오기
+    let latest_version = match get_latest_github_version().await {
+        Ok(version) => version,
+        Err(e) => {
+            println!("[WARN] Failed to get latest version from GitHub during install: {}", e);
+            return Err(format!("GitHub API 오류: {}", e));
+        }
+    };
+    
+    // 수동 버전 비교로 업데이트 필요성 확인
+    let needs_update = compare_versions(&current_version, &latest_version);
+    
+    if !needs_update {
+        println!("[INFO] No update needed - Current: {}, Latest: {}", current_version, latest_version);
+        return Ok("이미 최신 버전입니다".to_string());
+    }
+    
+    println!("[INFO] Attempting to install update - Current: {}, Latest: {}", current_version, latest_version);
+    
     match app_handle.updater_builder().build() {
         Ok(updater) => {
             match updater.check().await {
@@ -459,8 +539,9 @@ async fn install_update(app_handle: AppHandle) -> Result<String, String> {
                     }
                 },
                 Ok(None) => {
-                    println!("[INFO] No update to install - Current version: {} (latest)", current_version);
-                    Ok("설치할 업데이트가 없습니다".to_string())
+                    // Tauri 업데이터가 업데이트 없다고 해도, 수동 확인으로 업데이트가 필요하다면 강제 시도
+                    println!("[WARN] Tauri updater found no update, but manual check indicates update needed - Current: {}, Latest: {}", current_version, latest_version);
+                    Err("Tauri 업데이터가 업데이트를 찾지 못했습니다. 수동으로 GitHub에서 다운로드해주세요.".to_string())
                 },
                 Err(e) => {
                     println!("[ERROR] Update check failed during install - Current version: {}, Error: {}", current_version, e);
@@ -468,7 +549,10 @@ async fn install_update(app_handle: AppHandle) -> Result<String, String> {
                 }
             }
         },
-        Err(e) => Err(format!("Updater initialization failed: {}", e))
+        Err(e) => {
+            println!("[ERROR] Updater initialization failed during install: {}", e);
+            Err(format!("업데이터 초기화 실패: {}", e))
+        }
     }
 }
 
