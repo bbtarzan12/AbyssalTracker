@@ -364,8 +364,8 @@ async fn get_best_image_url(app_handle: AppHandle, type_id: u32, item_name: Stri
 async fn check_for_updates(app_handle: AppHandle) -> Result<String, String> {
     use tauri_plugin_updater::UpdaterExt;
     
-    match app_handle.updater() {
-        Some(updater) => {
+    match app_handle.updater_builder().build() {
+        Ok(updater) => {
             match updater.check().await {
                 Ok(Some(update)) => {
                     println!("[INFO] Update available: {}", update.version);
@@ -381,7 +381,7 @@ async fn check_for_updates(app_handle: AppHandle) -> Result<String, String> {
                 }
             }
         },
-        None => Err("Updater not initialized".to_string())
+        Err(e) => Err(format!("Updater initialization failed: {}", e))
     }
 }
 
@@ -389,8 +389,8 @@ async fn check_for_updates(app_handle: AppHandle) -> Result<String, String> {
 async fn install_update(app_handle: AppHandle) -> Result<String, String> {
     use tauri_plugin_updater::UpdaterExt;
     
-    match app_handle.updater() {
-        Some(updater) => {
+    match app_handle.updater_builder().build() {
+        Ok(updater) => {
             match updater.check().await {
                 Ok(Some(update)) => {
                     println!("[INFO] Installing update: {}", update.version);
@@ -413,7 +413,7 @@ async fn install_update(app_handle: AppHandle) -> Result<String, String> {
                 Err(e) => Err(format!("업데이트 확인 실패: {}", e))
             }
         },
-        None => Err("Updater not initialized".to_string())
+        Err(e) => Err(format!("Updater initialization failed: {}", e))
     }
 }
 

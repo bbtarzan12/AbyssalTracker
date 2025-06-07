@@ -36,12 +36,13 @@
         "https://api.github.com/repos/bbtarzan12/AbyssalTracker/releases/latest"
       ],
       "dialog": true,
-      "pubkey": "MCowBQYDK2VwAyEAPSJxCUonP7h69D58S3NeMKgdwaY0uQGqF3yvzdfjrKM="
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEM0RUJFOEZCM0I0QkI1RjMKUldUenRVczcrK2pyeEljR2RVd1NZT1liRStudmw5T3hRQzNBRThOb2NnR29rNzBXdHFmNTVCclEK"
     }
   },
   "bundle": {
     "active": true,
     "targets": "all",
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
