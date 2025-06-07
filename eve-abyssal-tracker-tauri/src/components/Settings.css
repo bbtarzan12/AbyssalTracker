@@ -506,3 +506,18 @@
   box-shadow: var(--shadow-lg);
 }
 
+/* Update Status */
+.update-status {
+  margin: var(--space-3) 0;
+  padding: var(--space-3);
+  background: var(--tertiary-bg);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+}
+
+.update-status .status-text {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+

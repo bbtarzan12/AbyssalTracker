@@ -45,5 +45,13 @@
     "resources": [
       "data/*"
     ]
+  },
+  "updater": {
+    "active": true,
+    "endpoints": [
+      "https://api.github.com/repos/bbtarzan12/AbyssalTracker/releases/latest"
+    ],
+    "dialog": true,
+    "pubkey": "MCowBQYDK2VwAyEAPSJxCUonP7h69D58S3NeMKgdwaY0uQGqF3yvzdfjrKM="
   }
 }

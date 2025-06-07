@@ -56,15 +56,24 @@ interface AbyssalData {
 const StatsDisplay: React.FC<StatsDisplayProps> = ({ data, dataError, onRefresh, onLightRefresh, onRunDeleted, triggerPopup: _triggerPopup }) => {
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'daily' | 'overall'>('daily');
+  const [hasInitializedDate, setHasInitializedDate] = useState<boolean>(false);
 
-  // 데이터가 변경될 때마다 선택된 날짜 업데이트
+  // 처음 데이터가 로드될 때만 최신 날짜로 설정, 이후에는 사용자 선택 유지
   useEffect(() => {
-    if (data && data.daily_stats && Object.keys(data.daily_stats).length > 0) {
+    if (data && data.daily_stats && Object.keys(data.daily_stats).length > 0 && !hasInitializedDate) {
       const dates = Object.keys(data.daily_stats).sort().reverse();
       const latestDate = dates[0];
       setSelectedDate(latestDate);
+      setHasInitializedDate(true);
     }
-  }, [data]);
+    // 사용자가 선택한 날짜가 더 이상 존재하지 않는 경우에만 최신 날짜로 변경
+    else if (data && data.daily_stats && selectedDate && !data.daily_stats[selectedDate]) {
+      const dates = Object.keys(data.daily_stats).sort().reverse();
+      if (dates.length > 0) {
+        setSelectedDate(dates[0]);
+      }
+    }
+  }, [data, selectedDate, hasInitializedDate]);
 
   if (dataError) return <div className="error-message">{dataError}</div>;
   if (!data || !data.df || data.df.length === 0) {
@@ -91,10 +100,6 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({ data, dataError, onRefresh,
             <span className="tab-icon">📊</span>
             <span className="tab-label">전체 통계</span>
           </button>
-        </div>
-        <div className="nav-status">
-          <span className="status-indicator"></span>
-          <span className="status-text">🔴 실시간 데이터</span>
         </div>
       </div>
 

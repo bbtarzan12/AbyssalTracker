@@ -1,0 +1,87 @@
+name: 'Release'
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+env:
+  TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+  TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+
+jobs:
+  release:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'macos-latest'
+            args: '--target aarch64-apple-darwin'
+          - platform: 'macos-latest'
+            args: '--target x86_64-apple-darwin'
+          - platform: 'ubuntu-20.04'
+            args: ''
+          - platform: 'windows-latest'
+            args: ''
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies (ubuntu only)
+        if: matrix.platform == 'ubuntu-20.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Rust setup
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './eve-abyssal-tracker-tauri/src-tauri -> target'
+
+      - name: Sync node version and setup cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+          cache-dependency-path: './eve-abyssal-tracker-tauri/package-lock.json'
+
+      - name: Install frontend dependencies
+        working-directory: ./eve-abyssal-tracker-tauri
+        run: npm ci
+
+      - name: Build the app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: './eve-abyssal-tracker-tauri'
+          tagName: ${{ github.ref_name }}
+          releaseName: 'EVE Abyssal Tracker v__VERSION__'
+          releaseBody: |
+            ## 변경사항
+            
+            새로운 기능과 개선사항이 포함된 업데이트입니다.
+            
+            ## 설치 방법
+            
+            1. 아래 Assets에서 운영체제에 맞는 파일을 다운로드하세요
+            2. Windows: `.msi` 또는 `.exe` 파일 실행
+            3. macOS: `.dmg` 파일 실행
+            4. Linux: `.deb` 또는 `.AppImage` 파일 실행
+            
+            ## 자동 업데이트
+            
+            애플리케이션 내 설정에서 업데이트를 확인하고 설치할 수 있습니다.
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.args }} 

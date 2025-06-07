@@ -43,6 +43,9 @@ const Settings: React.FC<SettingsProps> = ({ logMonitorRunning, setLogMonitorRun
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<string>('');
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const [isInstallingUpdate, setIsInstallingUpdate] = useState(false);
 
   const loadConfig = useCallback(async () => {
     setLoading(true);
@@ -103,6 +106,39 @@ const Settings: React.FC<SettingsProps> = ({ logMonitorRunning, setLogMonitorRun
     } catch (e) {
       console.error("Failed to test window:", e);
       triggerPopup("테스트 실패", `창 테스트에 실패했습니다: ${e}`, "error");
+    }
+  };
+
+  const handleCheckUpdate = async () => {
+    setIsCheckingUpdate(true);
+    setUpdateStatus('');
+    try {
+      const result = await invoke("check_for_updates") as string;
+      setUpdateStatus(result);
+      triggerPopup("업데이트 확인", result, result.includes("업데이트 가능") ? "info" : "info");
+    } catch (e) {
+      console.error("Failed to check for updates:", e);
+      const errorMsg = `업데이트 확인 실패: ${e}`;
+      setUpdateStatus(errorMsg);
+      triggerPopup("업데이트 확인 실패", errorMsg, "error");
+    } finally {
+      setIsCheckingUpdate(false);
+    }
+  };
+
+  const handleInstallUpdate = async () => {
+    setIsInstallingUpdate(true);
+    try {
+      const result = await invoke("install_update") as string;
+      triggerPopup("업데이트 설치", result, "info");
+      setUpdateStatus(result);
+    } catch (e) {
+      console.error("Failed to install update:", e);
+      const errorMsg = `업데이트 설치 실패: ${e}`;
+      setUpdateStatus(errorMsg);
+      triggerPopup("업데이트 설치 실패", errorMsg, "error");
+    } finally {
+      setIsInstallingUpdate(false);
     }
   };
 
@@ -254,6 +290,72 @@ const Settings: React.FC<SettingsProps> = ({ logMonitorRunning, setLogMonitorRun
                 >
                   <span className="button-icon">🔬</span>
                   <span className="button-text">테스트 실행</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Update Section */}
+        <div className="config-section">
+          <div className="section-header">
+            <div className="section-icon">🔄</div>
+            <div className="section-info">
+              <h2 className="section-title">🔄 애플리케이션 업데이트</h2>
+              <p className="section-description">최신 버전 확인 및 자동 업데이트</p>
+            </div>
+          </div>
+
+          <div className="control-grid">
+            <div className="control-card">
+              <div className="card-header">
+                <div className="card-icon">🔍</div>
+                <div className="card-title">업데이트 확인</div>
+              </div>
+              <div className="card-content">
+                <p className="card-description">
+                  GitHub에서 최신 버전을 확인합니다
+                </p>
+                {updateStatus && (
+                  <div className="update-status">
+                    <span className="status-text">{updateStatus}</span>
+                  </div>
+                )}
+                <button
+                  onClick={handleCheckUpdate}
+                  className="control-button secondary"
+                  disabled={isCheckingUpdate || isInstallingUpdate}
+                >
+                  <span className="button-icon">
+                    {isCheckingUpdate ? '⏳' : '🔍'}
+                  </span>
+                  <span className="button-text">
+                    {isCheckingUpdate ? '확인 중...' : '업데이트 확인'}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            <div className="control-card">
+              <div className="card-header">
+                <div className="card-icon">⬇️</div>
+                <div className="card-title">업데이트 설치</div>
+              </div>
+              <div className="card-content">
+                <p className="card-description">
+                  사용 가능한 업데이트를 다운로드하고 설치합니다
+                </p>
+                <button
+                  onClick={handleInstallUpdate}
+                  className="control-button primary"
+                  disabled={isCheckingUpdate || isInstallingUpdate || !updateStatus.includes("업데이트 가능")}
+                >
+                  <span className="button-icon">
+                    {isInstallingUpdate ? '⏳' : '⬇️'}
+                  </span>
+                  <span className="button-text">
+                    {isInstallingUpdate ? '설치 중...' : '업데이트 설치'}
+                  </span>
                 </button>
               </div>
             </div>

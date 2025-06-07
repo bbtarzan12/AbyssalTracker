@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    eve_abyssal_tracker_tauri_lib::run()
+    eve_abyssal_tracker_tauri_lib::run();
 }

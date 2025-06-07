@@ -4,6 +4,8 @@ use tokio::sync::Mutex;
 use polars::prelude::*;
 use polars::io::json::JsonWriter;
 use chrono::{DateTime, Local};
+use serde_json;
+use tokio::fs;
 
 mod config_manager;
 use config_manager::ConfigManager;
@@ -168,7 +170,7 @@ async fn save_abyssal_result(
     items: String,
     start_time: String,
     end_time: String,
-    duration: String
+    _duration: String
 ) -> Result<(), String> {
     let abyssal_data_manager = app_handle.state::<Arc<Mutex<AbyssalDataManager>>>();
     
@@ -358,10 +360,142 @@ async fn get_best_image_url(app_handle: AppHandle, type_id: u32, item_name: Stri
     cache.get_best_image_url(type_id, &item_name).await.map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+async fn check_for_updates(app_handle: AppHandle) -> Result<String, String> {
+    use tauri_plugin_updater::UpdaterExt;
+    
+    match app_handle.updater() {
+        Some(updater) => {
+            match updater.check().await {
+                Ok(Some(update)) => {
+                    println!("[INFO] Update available: {}", update.version);
+                    Ok(format!("업데이트 가능: 버전 {}", update.version))
+                },
+                Ok(None) => {
+                    println!("[INFO] No updates available");
+                    Ok("최신 버전입니다".to_string())
+                },
+                Err(e) => {
+                    println!("[ERROR] Failed to check for updates: {}", e);
+                    Err(format!("업데이트 확인 실패: {}", e))
+                }
+            }
+        },
+        None => Err("Updater not initialized".to_string())
+    }
+}
+
+#[tauri::command]
+async fn install_update(app_handle: AppHandle) -> Result<String, String> {
+    use tauri_plugin_updater::UpdaterExt;
+    
+    match app_handle.updater() {
+        Some(updater) => {
+            match updater.check().await {
+                Ok(Some(update)) => {
+                    println!("[INFO] Installing update: {}", update.version);
+                    match update.download_and_install(|chunk_length, content_length| {
+                        println!("Downloaded {} of {:?}", chunk_length, content_length);
+                    }, || {
+                        println!("Download finished");
+                    }).await {
+                        Ok(_) => {
+                            println!("[INFO] Update installed successfully");
+                            Ok("업데이트가 설치되었습니다. 애플리케이션을 다시 시작해주세요.".to_string())
+                        },
+                        Err(e) => {
+                            println!("[ERROR] Failed to install update: {}", e);
+                            Err(format!("업데이트 설치 실패: {}", e))
+                        }
+                    }
+                },
+                Ok(None) => Ok("설치할 업데이트가 없습니다".to_string()),
+                Err(e) => Err(format!("업데이트 확인 실패: {}", e))
+            }
+        },
+        None => Err("Updater not initialized".to_string())
+    }
+}
+
+#[tauri::command]
+async fn export_daily_analysis(
+    app_handle: AppHandle,
+    selected_date: String,
+    format: String, // "csv" or "json"
+) -> Result<String, String> {
+    use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
+    
+    // 분석 데이터 가져오기
+    let abyssal_data_analyzer = app_handle.state::<Arc<Mutex<AbyssalDataAnalyzer>>>();
+    let analysis_result = abyssal_data_analyzer.lock().await.analyze_data().await
+        .map_err(|e| format!("Failed to analyze data: {}", e))?;
+    
+    // 선택된 날짜의 데이터 필터링
+    let daily_data = analysis_result.daily_stats.get(&selected_date)
+        .ok_or_else(|| format!("No data found for date: {}", selected_date))?;
+    
+    // CSV 형식만 지원
+    if format != "csv" {
+        return Err("Only CSV format is supported".to_string());
+    }
+    let file_extension = "csv";
+    
+    // 파일 저장 대화상자 열기
+    let file_path = app_handle.dialog()
+        .file()
+        .set_title("일별 분석 데이터 내보내기")
+        .set_file_name(&format!("abyssal_daily_analysis_{}.{}", selected_date, file_extension))
+        .add_filter("Data files", &[file_extension])
+        .blocking_save_file();
+    
+    if let Some(path) = file_path {
+        // FilePath를 PathBuf로 변환
+        let path_buf = std::path::PathBuf::from(path.to_string());
+        
+        // CSV 형식으로 변환 (순수한 테이블 데이터만)
+        let mut csv_content = String::new();
+        csv_content.push_str("시작시각(KST),종료시각(KST),런 소요(분),어비셜 종류,실수익,ISK/h,획득 아이템,드롭,입장료\n");
+        
+        for run in &daily_data.runs {
+            csv_content.push_str(&format!(
+                "{},{},{},{},{},{},{},{},{}\n",
+                run.start_time,
+                run.end_time,
+                run.run_time_minutes,
+                run.abyssal_type,
+                run.net_profit,
+                run.isk_per_hour,
+                run.acquired_items.replace(",", ";"), // CSV 구분자 충돌 방지
+                run.drop_value,
+                run.entry_cost
+            ));
+        }
+        
+        let content = csv_content;
+        
+        // 파일 저장
+        fs::write(&path_buf, content).await
+            .map_err(|e| format!("Failed to write file: {}", e))?;
+        
+        // 성공 메시지 표시
+        app_handle.dialog()
+            .message(format!("일별 분석 데이터가 성공적으로 내보내졌습니다:\n{}", path_buf.display()))
+            .kind(MessageDialogKind::Info)
+            .title("내보내기 완료")
+            .blocking_show();
+        
+        Ok(path_buf.to_string_lossy().to_string())
+    } else {
+        Err("Export cancelled by user".to_string())
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
@@ -557,6 +691,9 @@ pub fn run() {
             get_filament_name,
             get_icon_url,
             get_best_image_url,
+            export_daily_analysis,
+            check_for_updates,
+            install_update,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

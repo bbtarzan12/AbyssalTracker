@@ -45,9 +45,6 @@ const DailyStatsDisplay: React.FC<DailyStatsDisplayProps> = ({
   onLightRefresh,
   onRunDeleted,
 }) => {
-  console.log("[DEBUG DailyStatsDisplay] daily_stats:", daily_stats);
-  console.log("[DEBUG DailyStatsDisplay] selectedDate:", selectedDate);
-
   // 금액 포맷팅 함수
   const formatISK = (amount: number): string => {
     if (amount >= 1000000000) { // 1billion 이상
@@ -71,8 +68,6 @@ const DailyStatsDisplay: React.FC<DailyStatsDisplayProps> = ({
 
   const dates = Object.keys(daily_stats).sort().reverse();
   const currentDailyData = daily_stats[selectedDate];
-  console.log("[DEBUG DailyStatsDisplay] dates:", dates);
-  console.log("[DEBUG DailyStatsDisplay] currentDailyData:", currentDailyData);
   
   const totalDailyIsk = currentDailyData ? currentDailyData.runs.reduce((sum, run) => sum + run['실수익'], 0) : 0;
   const totalRuns = currentDailyData ? currentDailyData.runs.length : 0;
@@ -137,6 +132,7 @@ const DailyStatsDisplay: React.FC<DailyStatsDisplayProps> = ({
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
             className="filter-select"
+            key={`date-select-${dates.length}`}
           >
             {dates.map(date => (
               <option key={date} value={date}>{date}</option>

@@ -54,6 +54,52 @@
   flex-wrap: nowrap;
 }
 
+/* Export Button in Table Actions */
+.export-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  background: var(--accent-bg);
+  color: white;
+  border: 1px solid var(--accent-bg);
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.export-btn:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.export-btn:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-xs);
+}
+
+.export-btn:disabled {
+  background: var(--muted-bg);
+  color: var(--text-muted);
+  border-color: var(--border-primary);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.export-btn:disabled:hover {
+  background: var(--muted-bg);
+  color: var(--text-muted);
+  border-color: var(--border-primary);
+  transform: none;
+  box-shadow: none;
+}
+
 /* Compact Metrics in Filter Controls */
 .filter-metrics {
   display: flex;

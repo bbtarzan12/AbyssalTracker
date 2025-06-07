@@ -102,25 +102,7 @@
   font-weight: 500;
 }
 
-.nav-status {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
 
-.status-indicator {
-  width: 8px;
-  height: 8px;
-  background: var(--success);
-  border-radius: 50%;
-  animation: pulse 2s infinite;
-}
-
-.status-text {
-  font-weight: 500;
-}
 
 /* Dashboard Content */
 .dashboard-content {
