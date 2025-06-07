@@ -38,29 +38,7 @@
   gap: var(--space-6);
 }
 
-/* Enhanced Chart Containers */
-.chart-container {
-  background: var(--surface-bg);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-xl);
-  padding: var(--space-6);
-  box-shadow: var(--shadow-sm);
-  transition: all var(--transition-fast);
-  position: relative;
-  overflow: hidden;
-}
-
-.chart-container::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent 0%, var(--accent-bg) 50%, transparent 100%);
-  opacity: 0.4;
-}
-
+/* Chart container base styles are defined in StatsDisplay.css */
 .chart-container:hover {
   box-shadow: var(--shadow-md);
   transform: translateY(-2px);
@@ -85,11 +63,7 @@
   font-weight: 400;
 }
 
-/* Enhanced Data Table */
-.data-table {
-  font-size: 0.9rem;
-}
-
+/* Data table base styles are defined in StatsDisplay.css */
 .data-table .numeric {
   text-align: right;
   font-family: 'Monaco', 'Consolas', monospace;
@@ -312,85 +286,7 @@
   height: 250px;
 }
 
-/* Responsive Enhancements */
-@media (max-width: 1200px) {
-  .charts-grid {
-    grid-template-columns: 1fr;
-    gap: var(--space-4);
-  }
-  
-  .chart-container {
-    padding: var(--space-4);
-  }
-  
-  .efficiency-bar {
-    width: 60px;
-    height: 16px;
-  }
-  
-  .efficiency-text {
-    font-size: 0.6rem;
-  }
-}
 
-@media (max-width: 768px) {
-  .overall-analytics {
-    gap: var(--space-4);
-  }
-  
-  .analytics-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-3);
-  }
-  
-  .chart-container {
-    padding: var(--space-3);
-  }
-  
-  .chart-title {
-    font-size: 1rem;
-  }
-  
-  .chart-subtitle {
-    font-size: 0.8rem;
-  }
-  
-  .data-table {
-    font-size: 0.8rem;
-  }
-  
-  .tier-badge, .weather-badge {
-    font-size: 0.7rem;
-    padding: 2px var(--space-2);
-  }
-  
-  .efficiency-bar {
-    width: 50px;
-    height: 14px;
-  }
-}
-
-@media (max-width: 480px) {
-  .analytics-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .data-table-container {
-    overflow-x: auto;
-  }
-  
-  .data-table {
-    min-width: 600px;
-  }
-  
-  .charts-grid {
-    gap: var(--space-3);
-  }
-  
-  .summary-stats {
-    grid-template-columns: 1fr;
-  }
-}
 
 /* Animation Enhancements */
 @keyframes chartLoad {
@@ -404,25 +300,9 @@
   }
 }
 
-.chart-container {
-  animation: chartLoad 0.4s ease-out;
-}
+/* Chart animation is now part of base styles */
 
-/* Accessibility Enhancements */
-@media (prefers-reduced-motion: reduce) {
-  .chart-container,
-  .metric-card.highlight,
-  .summary-card {
-    animation: none;
-    transition: none;
-  }
-  
-  .chart-container:hover,
-  .metric-card.highlight:hover,
-  .summary-card:hover {
-    transform: none;
-  }
-}
+
 
 /* Focus States */
 .tier-badge:focus,
@@ -431,19 +311,4 @@
   outline-offset: 2px;
 }
 
-/* High Contrast Mode Support */
-@media (prefers-contrast: high) {
-  .chart-container {
-    border-width: 2px;
-  }
-  
-  .tier-badge,
-  .weather-badge {
-    border-width: 2px;
-  }
-  
-  .efficiency-bar {
-    border-width: 2px;
-  }
-} 
-} 
+ 

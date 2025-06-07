@@ -98,17 +98,10 @@ impl LogMonitor {
 
         // 캐릭터 이름이 설정된 경우: 해당 캐릭터의 최신 로그 찾기
         if !self.character_name.is_empty() {
-            println!("[DEBUG] Looking for logs for character: '{}'", self.character_name);
-            
             for (file_path, mtime) in &files_with_mtime {
                 // 각 파일에서 캐릭터 이름 확인
                 let detected_name = self.log_processor.detect_character_name(Some(file_path));
                 if let Some(detected) = detected_name {
-                    println!("[DEBUG] File '{}' has character: '{}'", 
-                        file_path.file_name().unwrap_or_default().to_string_lossy(), 
-                        detected
-                    );
-                    
                     if detected == self.character_name {
                         println!("[INFO] Found matching log for character '{}': {} (modified: {:?})", 
                             self.character_name,
@@ -118,10 +111,6 @@ impl LogMonitor {
                         self.log_processor.set_log_file(file_path.clone());
                         return Some(file_path.clone());
                     }
-                } else {
-                    println!("[DEBUG] Could not detect character from: '{}'",
-                        file_path.file_name().unwrap_or_default().to_string_lossy()
-                    );
                 }
             }
             
@@ -199,27 +188,8 @@ impl LogMonitor {
                 .collect();
             
             if !new_lines.is_empty() {
-                println!("[DEBUG] Found {} new log lines (start_line: {}, total_lines: {})", 
-                    new_lines.len(), start_line, lines.len());
-                for (i, line) in new_lines.iter().enumerate() {
-                    if i < 5 { // 처음 5줄만 출력
-                        println!("[DEBUG] New line {}: {}", i, line);
-                    }
-                }
                 if let Some(ref callback) = self.on_new_log_lines {
                     callback(new_lines);
-                } else {
-                    println!("[DEBUG] No on_new_log_lines callback set");
-                }
-            }
-        } else {
-            // 새로운 라인이 없을 때도 디버그 출력
-            static mut NO_NEW_LINES_COUNT: u32 = 0;
-            unsafe {
-                NO_NEW_LINES_COUNT += 1;
-                if NO_NEW_LINES_COUNT % 20 == 0 {
-                    println!("[DEBUG] No new lines (start_line: {}, total_lines: {}, count: {})", 
-                        start_line, lines.len(), NO_NEW_LINES_COUNT);
                 }
             }
         }
@@ -294,18 +264,10 @@ impl LogMonitor {
                         }
                     }
 
-                    // 모니터링 상태 디버그 출력 (매 10회마다)
+                    // 모니터링 상태 체크 (매 10회마다)
                     static mut MONITOR_COUNT: u32 = 0;
                     unsafe {
                         MONITOR_COUNT += 1;
-                        if MONITOR_COUNT % 10 == 0 {
-                            if let Some(ref log_file) = monitor.log_file {
-                                if let Ok(metadata) = tokio::fs::metadata(log_file).await {
-                                    println!("[DEBUG] Monitor tick #{}: file size {}, last_pos {}", 
-                                        MONITOR_COUNT, metadata.len(), monitor.last_position);
-                                }
-                            }
-                        }
                         
                         // 매 300회(10분)마다만 최신 로그 파일 재확인 (너무 자주 하지 않도록)
                         if MONITOR_COUNT % 300 == 0 {
@@ -335,40 +297,25 @@ impl LogMonitor {
     }
 
     pub async fn start(&mut self, system_change_processor: Arc<Mutex<SystemChangeProcessor>>) -> Result<(), Box<dyn std::error::Error>> {
-        println!("[DEBUG] LogMonitor.start() called");
-        println!("[DEBUG] logs_path: {}", self.logs_path.display());
-        println!("[DEBUG] character_name: '{}'", self.character_name);
-        
         self.monitoring = true;
         self.log_file = self.find_latest_local_log().await;
         
         if let Some(ref log_file) = self.log_file {
-            println!("[DEBUG] Found log file: {}", log_file.display());
             if let Ok(metadata) = tokio::fs::metadata(log_file).await {
                 self.last_position = metadata.len();
             }
-        } else {
-            println!("[DEBUG] No log file found");
         }
-
-        println!("[DEBUG] Checking start conditions:");
-        println!("[DEBUG] - log_file.is_some(): {}", self.log_file.is_some());
-        println!("[DEBUG] - character_name not empty: {}", !self.character_name.is_empty());
 
         if self.log_file.is_some() && !self.character_name.is_empty() {
             println!("[INFO] LogMonitor started for character: {}", self.character_name);
 
             let (stop_tx, stop_rx) = mpsc::channel(1);
             *self.stop_signal_sender.lock().await = Some(stop_tx);
-            println!("[DEBUG] Created stop signal channel");
 
             // Python과 동일한 파일 시스템 감시 설정
             // TODO: notify 설정 구현
 
             // 모니터링 태스크 시작 - 콜백 복사본 생성
-            println!("[DEBUG] Creating monitor clone for task");
-            println!("[DEBUG] - on_new_log_lines callback: {}", self.on_new_log_lines.is_some());
-            println!("[DEBUG] - on_log_file_change callback: {}", self.on_log_file_change.is_some());
             
             // 콜백을 take하지 말고 복사본으로 전달
             let mut monitor_clone = LogMonitor {
@@ -400,17 +347,14 @@ impl LogMonitor {
             });
             monitor_clone.on_new_log_lines = Some(callback);
 
-            println!("[DEBUG] Spawning monitor loop task");
             let task = tokio::spawn(Self::monitor_loop(monitor_clone, stop_rx));
             *self.monitor_task.lock().await = Some(task);
-            println!("[DEBUG] Monitor task spawned successfully");
         } else {
             println!("[ERROR] LogMonitor failed to initialize. No suitable log file found or character name not detected.");
             self.monitoring = false;
             return Err("LogMonitor failed to initialize".into());
         }
 
-        println!("[DEBUG] LogMonitor.start() completed successfully");
         Ok(())
     }
 

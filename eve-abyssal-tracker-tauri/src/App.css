@@ -226,9 +226,7 @@ main {
   background: transparent;
   padding: 0;
   margin: 0;
-  overflow-x: hidden;
-  overflow-y: auto; /* 세로 스크롤 활성화 */
-  height: 0; /* flex가 제대로 작동하도록 */
+  overflow: auto; /* 필요할 때만 스크롤바 표시 */
 }
 
 /* Professional Message Styles */
@@ -357,7 +355,7 @@ h6 { font-size: 0.875rem; }
 .text-warning { color: var(--warning); }
 .text-error { color: var(--error); }
 
-/* Animations */
+/* Core Animations - Keep these as they are used across multiple components */
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -373,34 +371,7 @@ h6 { font-size: 0.875rem; }
   to { opacity: 1; transform: translateX(0); }
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-  .nav-wrapper {
-    padding: var(--space-3) var(--space-4);
-    flex-wrap: wrap;
-    gap: var(--space-3);
-  }
-  
-  .nav-brand {
-    font-size: 1rem;
-  }
-  
-  .tab-button {
-    padding: var(--space-2) var(--space-3);
-    font-size: 0.8rem;
-  }
-  
-  .nav-actions {
-    order: 3;
-    width: 100%;
-    justify-content: flex-end;
-  }
-  
-  .toolbar-btn {
-    padding: var(--space-2) var(--space-3);
-    font-size: 0.8rem;
-  }
-}
+
 
 /* Scrollbar Styling */
 ::-webkit-scrollbar {

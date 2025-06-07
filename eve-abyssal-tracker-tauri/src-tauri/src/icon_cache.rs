@@ -25,10 +25,8 @@ impl IconCache {
 
     async fn load_type_id_cache(&mut self) -> Result<()> {
         let cache_file = self.data_dir.join("typeid_cache.json");
-        println!("[DEBUG] Looking for typeid_cache.json at: {:?}", cache_file);
         
         if cache_file.exists() {
-            println!("[DEBUG] typeid_cache.json exists, reading content...");
             let content = fs::read_to_string(&cache_file).await?;
             let json: Value = serde_json::from_str(&content)?;
             
@@ -41,7 +39,6 @@ impl IconCache {
             }
             
             println!("[INFO] Loaded {} type IDs from cache", self.type_id_cache.len());
-            println!("[DEBUG] Sample items: {:?}", self.type_id_cache.keys().take(5).collect::<Vec<_>>());
         } else {
             println!("[ERROR] typeid_cache.json not found at: {:?}", cache_file);
         }
@@ -63,8 +60,6 @@ impl IconCache {
             return Some(*type_id);
         }
         
-        println!("[DEBUG] No type_id found for item: '{}' (cleaned: '{}')", item_name, cleaned_name);
-        println!("[DEBUG] Available items in cache: {:?}", self.type_id_cache.keys().take(5).collect::<Vec<_>>());
         None
     }
 
@@ -74,10 +69,8 @@ impl IconCache {
         let response = reqwest::get(&url).await?;
         if response.status().is_success() {
             let types: Vec<String> = response.json().await?;
-            println!("[DEBUG] Available types for {}: {:?}", type_id, types);
             Ok(types)
         } else {
-            println!("[DEBUG] Failed to get image types for {}: {}", type_id, response.status());
             Ok(vec!["icon".to_string()]) // 기본값으로 icon 반환
         }
     }

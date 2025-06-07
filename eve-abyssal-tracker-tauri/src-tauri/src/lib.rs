@@ -170,14 +170,6 @@ async fn save_abyssal_result(
     end_time: String,
     duration: String
 ) -> Result<(), String> {
-    println!("[DEBUG] save_abyssal_result called with:");
-    println!("  type: '{}'", abyssal_type);
-    println!("  items: '{}'", items);
-    println!("  items_len: {}", items.len());
-    println!("  start: '{}'", start_time);
-    println!("  end: '{}'", end_time);
-    println!("  duration: '{}'", duration);
-    
     let abyssal_data_manager = app_handle.state::<Arc<Mutex<AbyssalDataManager>>>();
     
     // 시간 문자열을 NaiveTime으로 변환 (KST)
@@ -191,14 +183,17 @@ async fn save_abyssal_result(
     let start_datetime = today.and_time(start_time_naive).and_local_timezone(chrono::Local).unwrap();
     let end_datetime = today.and_time(end_time_naive).and_local_timezone(chrono::Local).unwrap();
     
-    println!("[DEBUG] Parsed times: start={}, end={}", start_datetime, end_datetime);
-    
     let result = abyssal_data_manager.lock().await
         .save_abyssal_result(start_datetime, end_datetime, items, abyssal_type)
         .map_err(|e| e.to_string());
     
     match &result {
-        Ok(_) => println!("[INFO] Abyssal result saved successfully"),
+        Ok(_) => {
+            println!("[INFO] Abyssal result saved successfully");
+            // 새 런이 저장되면 프론트엔드에 이벤트 발생
+            let _ = app_handle.emit("abyssal_run_completed", ());
+            println!("[INFO] Emitted abyssal_run_completed event");
+        },
         Err(e) => println!("[ERROR] Failed to save abyssal result: {}", e),
     }
     
@@ -212,9 +207,6 @@ async fn open_abyssal_result_window(
     end_time: String,
     duration: String,
 ) -> Result<(), String> {
-    println!("[DEBUG] Opening abyssal result window with: start={}, end={}, duration={}", 
-        start_time, end_time, duration);
-    
     // URL 파라미터 생성
     let url = format!(
         "abyssal-result.html?start_time={}&end_time={}&duration={}",
@@ -245,37 +237,84 @@ async fn open_abyssal_result_window(
 
 #[tauri::command]
 async fn test_abyssal_window(app_handle: AppHandle) -> Result<(), String> {
-    println!("[DEBUG] Testing multiple abyssal result windows...");
+    use chrono::{Local, Timelike};
+    use rand::Rng;
     
-    // 여러 개의 테스트 런을 생성해서 CSV에 다양한 데이터 저장
-    let test_runs = vec![
-        ("19:15:30", "19:28:45", "13m 15s"),
-        ("19:35:12", "19:47:33", "12m 21s"),
-        ("20:02:18", "20:16:44", "14m 26s"),
-        ("20:25:08", "20:38:34", "13m 26s"),
-        ("20:45:55", "21:01:22", "15m 27s"),
-    ];
+    // 랜덤 값들을 미리 생성 (Send 문제 해결)
+    let (start_hour, start_minute, start_second, duration_minutes, duration_seconds) = {
+        let mut rng = rand::thread_rng();
+        (
+            rng.gen_range(10..23), // 10시부터 22시까지
+            rng.gen_range(0..60),
+            rng.gen_range(0..60),
+            rng.gen_range(10..21), // 10분 ~ 20분 사이
+            rng.gen_range(0..60)
+        )
+    };
     
-    for (i, (start_time, end_time, duration)) in test_runs.iter().enumerate() {
-        println!("[DEBUG] Opening test window {} of {}: {} - {}", i + 1, test_runs.len(), start_time, end_time);
-        
-        // 각 윈도우 사이에 약간의 지연을 두어 구분되게 함
-        if i > 0 {
-            tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-        }
-        
-        if let Err(e) = open_abyssal_result_window(
-            app_handle.clone(),
-            start_time.to_string(),
-            end_time.to_string(),
-            duration.to_string()
-        ).await {
-            println!("[ERROR] Failed to open test window {}: {}", i + 1, e);
-        }
+    // 시작 시간 생성
+    let today = Local::now().date_naive();
+    let start_time = today
+        .and_hms_opt(start_hour, start_minute, start_second)
+        .unwrap();
+    
+    // 종료 시간 계산
+    let end_time = start_time + chrono::Duration::minutes(duration_minutes) + chrono::Duration::seconds(duration_seconds);
+    
+    // 문자열 포맷
+    let start_time_str = format!("{:02}:{:02}:{:02}", start_time.hour(), start_time.minute(), start_time.second());
+    let end_time_str = format!("{:02}:{:02}:{:02}", end_time.hour(), end_time.minute(), end_time.second());
+    let duration_str = format!("{}m {}s", duration_minutes, duration_seconds);
+    
+    if let Err(e) = open_abyssal_result_window(
+        app_handle.clone(),
+        start_time_str,
+        end_time_str,
+        duration_str
+    ).await {
+        println!("[ERROR] Failed to open test window: {}", e);
+        return Err(e);
     }
     
-    println!("[DEBUG] All test windows created successfully");
     Ok(())
+}
+
+#[tauri::command]
+async fn delete_abyssal_run_command(
+    app_handle: AppHandle,
+    start_time_kst: String,
+    end_time_kst: String
+) -> Result<(), String> {
+    let abyssal_data_manager = app_handle.state::<Arc<Mutex<AbyssalDataManager>>>();
+    let manager = abyssal_data_manager.lock().await;
+    
+    let result = manager.delete_abyssal_run(&start_time_kst, &end_time_kst)
+        .map_err(|e| e.to_string());
+    
+    match &result {
+        Ok(_) => println!("[INFO] Abyssal run deleted successfully"),
+        Err(e) => println!("[ERROR] Failed to delete abyssal run: {}", e),
+    }
+    
+    result
+}
+
+#[tauri::command]
+async fn light_refresh_abyssal_data_command(app_handle: AppHandle) -> Result<AnalysisResult, String> {
+    let abyssal_data_manager = app_handle.state::<Arc<Mutex<AbyssalDataManager>>>();
+    let abyssal_data_analyzer = app_handle.state::<Arc<Mutex<AbyssalDataAnalyzer>>>();
+    
+    // CSV 데이터만 다시 로드
+    let df = {
+        let manager = abyssal_data_manager.lock().await;
+        manager.load_abyssal_results().map_err(|e| e.to_string())?
+    };
+    
+    // 기존 캐시된 가격 정보로 빠른 분석 (새로운 아이템 발견 시에만 API 호출)
+    let mut analyzer = abyssal_data_analyzer.lock().await;
+    let result = analyzer.light_analyze_data(df).await.map_err(|e| e.to_string())?;
+    
+    Ok(result)
 }
 
 #[tauri::command]
@@ -349,8 +388,6 @@ pub fn run() {
                 // 4. IconCache 초기화
                 // 실제 파일 위치는 eve-abyssal-tracker-tauri/src-tauri/data/typeid_cache.json
                 let data_dir = std::path::PathBuf::from("data");
-                println!("[DEBUG] Using data_dir: {:?}", data_dir);
-                
                 let mut icon_cache = IconCache::new(data_dir);
                 if let Err(e) = icon_cache.initialize().await {
                     eprintln!("Failed to initialize IconCache: {}", e);
@@ -496,6 +533,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             analyze_abyssal_data_command,
+            light_refresh_abyssal_data_command,
             config_manager::get_config,
             config_manager::set_log_path,
             config_manager::set_character_name,
@@ -503,6 +541,7 @@ pub fn run() {
             load_abyssal_results_command,
             save_abyssal_result_command,
             save_abyssal_result,
+            delete_abyssal_run_command,
             open_abyssal_result_window,
             test_abyssal_window,
             eve_api::get_type_ids,

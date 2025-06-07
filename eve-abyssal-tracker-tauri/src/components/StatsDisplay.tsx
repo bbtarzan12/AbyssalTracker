@@ -7,6 +7,8 @@ interface StatsDisplayProps {
   data: AbyssalData | null;
   dataError: string | null;
   onRefresh: () => Promise<void>;
+  onLightRefresh?: () => Promise<void>;
+  onRunDeleted?: (run: RunData) => void;
   triggerPopup: (title: string, message: string, type?: "info" | "warning" | "error") => void;
 }
 
@@ -51,7 +53,7 @@ interface AbyssalData {
   item_buy_price_cache: { [key: string]: number };
 }
 
-const StatsDisplay: React.FC<StatsDisplayProps> = ({ data, dataError, onRefresh: _, triggerPopup: __ }) => {
+const StatsDisplay: React.FC<StatsDisplayProps> = ({ data, dataError, onRefresh, onLightRefresh, onRunDeleted, triggerPopup: _triggerPopup }) => {
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'daily' | 'overall'>('daily');
 
@@ -60,8 +62,6 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({ data, dataError, onRefresh:
     if (data && data.daily_stats && Object.keys(data.daily_stats).length > 0) {
       const dates = Object.keys(data.daily_stats).sort().reverse();
       const latestDate = dates[0];
-      console.log("[DEBUG] 사용 가능한 날짜들:", dates);
-      console.log("[DEBUG] 선택된 날짜:", latestDate);
       setSelectedDate(latestDate);
     }
   }, [data]);
@@ -106,6 +106,9 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({ data, dataError, onRefresh:
             item_buy_price_cache={item_buy_price_cache}
             selectedDate={selectedDate}
             setSelectedDate={setSelectedDate}
+            onDataUpdate={onRefresh}
+            onLightRefresh={onLightRefresh}
+            onRunDeleted={onRunDeleted}
           />
         ) : (
           <OverallStatsDisplay

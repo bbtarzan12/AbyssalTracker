@@ -2,7 +2,7 @@
 
 .dashboard-container {
   background: transparent;
-  min-height: calc(100vh - 80px);
+  height: 100%;
   padding: 0;
   margin: 0;
   display: flex;
@@ -46,37 +46,7 @@
   align-items: center;
 }
 
-.toolbar-btn {
-  padding: var(--space-2) var(--space-4);
-  border: 1px solid var(--border-primary);
-  background: var(--tertiary-bg);
-  color: var(--text-secondary);
-  border-radius: var(--radius-md);
-  font-size: 0.85rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.toolbar-btn:hover {
-  background: var(--accent-bg);
-  border-color: var(--accent-bg);
-  color: white;
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-}
-
-.refresh-btn .btn-icon {
-  font-size: 1rem;
-  transition: transform var(--transition-fast);
-}
-
-.refresh-btn:hover .btn-icon {
-  transform: rotate(180deg);
-}
+/* Toolbar button styles are defined in App.css */
 
 /* Dashboard Navigation */
 .dashboard-nav {
@@ -154,10 +124,8 @@
 
 /* Dashboard Content */
 .dashboard-content {
-  flex: 1;
   padding: var(--space-6);
   background: var(--primary-bg);
-  overflow-x: auto;
 }
 
 /* Professional Grid System */
@@ -335,14 +303,9 @@
   display: flex;
   gap: var(--space-4);
   align-items: center;
-  flex-wrap: wrap;
 }
 
-.filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
+
 
 .filter-label {
   font-size: 0.8rem;
@@ -420,66 +383,4 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Responsive Design */
-@media (max-width: 1200px) {
-  .analytics-grid {
-    grid-template-columns: repeat(4, 1fr);
-    gap: var(--space-4);
-  }
-}
-
-@media (max-width: 900px) {
-  .analytics-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-3);
-  }
-}
-
-@media (max-width: 1024px) {
-  .dashboard-header {
-    flex-direction: column;
-    gap: var(--space-4);
-    align-items: flex-start;
-  }
-  
-  .dashboard-content {
-    padding: var(--space-4);
-  }
-}
-
-@media (max-width: 768px) {
-  .analytics-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-3);
-  }
-  
-  .dashboard-nav {
-    flex-direction: column;
-    gap: var(--space-3);
-    align-items: flex-start;
-  }
-  
-  .nav-tabs {
-    width: 100%;
-    justify-content: center;
-  }
-  
-  .filter-controls {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .filter-group {
-    width: 100%;
-  }
-  
-  .filter-select, .filter-input {
-    width: 100%;
-  }
-}
-
-@media (max-width: 480px) {
-  .analytics-grid {
-    grid-template-columns: 1fr;
-  }
-} 
+ 

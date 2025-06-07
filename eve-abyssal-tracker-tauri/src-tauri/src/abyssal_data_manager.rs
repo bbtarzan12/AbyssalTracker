@@ -5,6 +5,7 @@ use std::fs;
 use polars::prelude::*;
 use regex::Regex;
 use chrono::{DateTime, Local};
+use std::ops::{BitAnd, Not};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AbyssalResult {
@@ -90,16 +91,13 @@ impl AbyssalDataManager {
 
     pub fn save_abyssal_result(&self, start_time: DateTime<Local>, end_time: DateTime<Local>, acquired_items: String, abyssal_type: String) -> Result<(), String> {
         let items = acquired_items.trim();
-        println!("[DEBUG] save_abyssal_result - raw items: '{}'", items);
         
         if items.is_empty() {
-            println!("[DEBUG] Items empty, not saving");
             return Ok(()); // Python과 동일: 아이템이 없으면 저장하지 않음
         }
 
         // 아이템 파싱 테스트
         let parsed_items = self.parse_items(items);
-        println!("[DEBUG] Parsed {} items", parsed_items.len());
 
         // data 디렉토리 생성
         fs::create_dir_all(&self.data_dir_path)
@@ -138,20 +136,6 @@ impl AbyssalDataManager {
                 .finish()
                 .map_err(|e| format!("Failed to read existing CSV: {}", e))?;
 
-            println!("[DEBUG] Existing DataFrame schema:");
-            for col in existing_df.get_column_names() {
-                if let Ok(series) = existing_df.column(col) {
-                    println!("  {}: {:?}", col, series.dtype());
-                }
-            }
-            
-            println!("[DEBUG] New DataFrame schema:");
-            for col in new_row_df.get_column_names() {
-                if let Ok(series) = new_row_df.column(col) {
-                    println!("  {}: {:?}", col, series.dtype());
-                }
-            }
-
             // 기존 파일의 스키마와 맞추기 위해 타입 변환
             let new_row_df = if let Ok(existing_seconds_col) = existing_df.column("런 소요(초)") {
                 match existing_seconds_col.dtype() {
@@ -171,7 +155,6 @@ impl AbyssalDataManager {
                         ]).map_err(|e| format!("Failed to create Float64 DataFrame: {}", e))?
                     },
                     _ => {
-                        println!("[DEBUG] Unexpected seconds column type: {:?}", existing_seconds_col.dtype());
                         new_row_df
                     }
                 }
@@ -194,8 +177,6 @@ impl AbyssalDataManager {
             CsvWriter::new(file)
                 .finish(&mut existing_df)
                 .map_err(|e| format!("Failed to write CSV: {}", e))?;
-            
-            println!("[DEBUG] CSV file updated with {} rows", existing_df.height());
         } else {
             // 새 파일 생성
             let mut df = new_row_df;
@@ -210,17 +191,12 @@ impl AbyssalDataManager {
             CsvWriter::new(file)
                 .finish(&mut df)
                 .map_err(|e| format!("Failed to write CSV: {}", e))?;
-                
-            println!("[DEBUG] New CSV file created with {} rows", df.height());
         }
         
-        println!("[DEBUG] save_abyssal_result completed successfully");
         Ok(())
     }
 
     pub fn parse_items(&self, item_str: &str) -> Vec<(String, i32)> {
-        println!("[DEBUG] parse_items input: '{}'", item_str);
-        
         // Python과 정확히 동일한 로직, 탭과 세미콜론 모두 구분자로 처리
         let regex = Regex::new(r"(.+?)\*\s*(\d+)?").unwrap(); // $ 제거
         let mut items = Vec::new();
@@ -228,18 +204,15 @@ impl AbyssalDataManager {
         // 먼저 '*탭숫자' 패턴을 '*공백숫자'로 변환
         let star_tab_regex = Regex::new(r"\*\t(\d+)").unwrap();
         let step1 = star_tab_regex.replace_all(item_str, "* $1");
-        println!("[DEBUG] after step1: '{}'", step1);
         
         // 그 다음 나머지 탭을 세미콜론으로 치환하고, 연속된 세미콜론들을 하나로 합침
         let normalized_str = step1
             .replace('\t', ";")
             .replace(";;", ";")
             .replace("; ;", ";");
-        println!("[DEBUG] normalized_str: '{}'", normalized_str);
         
-        for (i, entry) in normalized_str.split(';').enumerate() {
+        for entry in normalized_str.split(';') {
             let entry = entry.trim();
-            println!("[DEBUG] processing entry {}: '{}'", i, entry);
             
             if entry.is_empty() {
                 continue;
@@ -254,17 +227,14 @@ impl AbyssalDataManager {
                 } else {
                     1
                 };
-                println!("[DEBUG] regex match - name: '{}', qty: {}", clean_name, qty);
                 items.push((clean_name, qty));
             } else {
                 // '*' 제거 후 추가
                 let clean_entry = entry.replace('*', "").trim().to_string();
-                println!("[DEBUG] no regex match - clean_entry: '{}'", clean_entry);
                 items.push((clean_entry, 1));
             }
         }
         
-        println!("[DEBUG] final parsed items: {:?}", items);
         items
     }
 
@@ -291,5 +261,74 @@ impl AbyssalDataManager {
             }
         }
         None
+    }
+
+    pub fn delete_abyssal_run(&self, start_time_kst: &str, end_time_kst: &str) -> Result<(), String> {
+        // 시작 시간에서 날짜 추출
+        let date_str = if let Some(date_part) = start_time_kst.split(' ').next() {
+            date_part.to_string()
+        } else {
+            return Err("Invalid start time format".to_string());
+        };
+        
+        let filename = format!("abyssal_results_{}.csv", date_str);
+        let data_file_path = self.data_dir_path.join(&filename);
+        
+        if !data_file_path.exists() {
+            return Err(format!("Data file not found: {}", filename));
+        }
+        
+        // CSV 파일 읽기
+        let mut df = CsvReader::from_path(&data_file_path)
+            .map_err(|e| format!("Failed to open data file: {}", e))?
+            .has_header(true)
+            .finish()
+            .map_err(|e| format!("Failed to read CSV: {}", e))?;
+        
+        // 삭제할 행 찾기 (시작시간과 종료시간이 모두 일치하는 행)
+        let start_time_col = df.column("시작시각(KST)")
+            .map_err(|e| format!("Failed to get start time column: {}", e))?;
+        let end_time_col = df.column("종료시각(KST)")
+            .map_err(|e| format!("Failed to get end time column: {}", e))?;
+        
+        // 조건에 맞지 않는 행들만 유지 (즉, 삭제할 행 제외)
+        let mask = start_time_col.equal(start_time_kst)
+            .map_err(|e| format!("Failed to create start time mask: {}", e))?
+            .bitand(
+                end_time_col.equal(end_time_kst)
+                    .map_err(|e| format!("Failed to create end time mask: {}", e))?
+            )
+            .not(); // 조건에 맞는 행을 제외하기 위해 not() 적용
+        
+        let filtered_df = df.filter(&mask)
+            .map_err(|e| format!("Failed to filter DataFrame: {}", e))?;
+        
+        if filtered_df.height() == df.height() {
+            return Err("Run not found in the data file".to_string());
+        }
+        
+        // 필터링된 데이터를 다시 저장
+        if filtered_df.height() == 0 {
+            // 모든 행이 삭제되었으면 파일 삭제
+            fs::remove_file(&data_file_path)
+                .map_err(|e| format!("Failed to delete empty data file: {}", e))?;
+        } else {
+            // 남은 데이터를 파일에 저장
+            let mut df_to_write = filtered_df;
+            
+            // UTF-8-BOM으로 저장
+            let mut file = fs::File::create(&data_file_path)
+                .map_err(|e| format!("Failed to create data file: {}", e))?;
+            
+            use std::io::Write;
+            file.write_all(&[0xEF, 0xBB, 0xBF])
+                .map_err(|e| format!("Failed to write BOM: {}", e))?;
+
+            CsvWriter::new(file)
+                .finish(&mut df_to_write)
+                .map_err(|e| format!("Failed to write CSV: {}", e))?;
+        }
+        
+        Ok(())
     }
 }

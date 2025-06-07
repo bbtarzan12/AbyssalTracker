@@ -305,6 +305,34 @@
              box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
          }
 
+         /* Optgroup Styling for Tier Grouping */
+         .modern-select optgroup {
+             background: var(--tertiary-bg);
+             color: var(--text-secondary);
+             font-weight: 700;
+             font-size: 0.85rem;
+             text-transform: uppercase;
+             letter-spacing: 0.05em;
+             padding: var(--space-2) var(--space-1);
+             border-top: 1px solid var(--border-primary);
+         }
+
+         .modern-select optgroup:first-child {
+             border-top: none;
+         }
+
+         .modern-select option {
+             background: var(--secondary-bg);
+             color: var(--text-primary);
+             padding: var(--space-2) var(--space-3);
+             font-weight: 500;
+         }
+
+         .modern-select option:hover {
+             background: var(--accent-bg);
+             color: white;
+         }
+
         .textarea-container {
             position: relative;
         }
@@ -505,36 +533,48 @@
                             어비셜 종류
                         </h3>
                         <select id="abyssal-type" class="modern-select">
-                            <option value="T6 Exotic">T6 Exotic</option>
-                            <option value="T6 Firestorm">T6 Firestorm</option>
-                            <option value="T6 Gamma">T6 Gamma</option>
-                            <option value="T6 Dark">T6 Dark</option>
-                            <option value="T6 Electrical">T6 Electrical</option>
-                            <option value="T5 Exotic">T5 Exotic</option>
-                            <option value="T5 Firestorm">T5 Firestorm</option>
-                            <option value="T5 Gamma">T5 Gamma</option>
-                            <option value="T5 Dark">T5 Dark</option>
-                            <option value="T5 Electrical">T5 Electrical</option>
-                            <option value="T4 Exotic">T4 Exotic</option>
-                            <option value="T4 Firestorm">T4 Firestorm</option>
-                            <option value="T4 Gamma">T4 Gamma</option>
-                            <option value="T4 Dark">T4 Dark</option>
-                            <option value="T4 Electrical">T4 Electrical</option>
-                            <option value="T3 Exotic">T3 Exotic</option>
-                            <option value="T3 Firestorm">T3 Firestorm</option>
-                            <option value="T3 Gamma">T3 Gamma</option>
-                            <option value="T3 Dark">T3 Dark</option>
-                            <option value="T3 Electrical">T3 Electrical</option>
-                            <option value="T2 Exotic">T2 Exotic</option>
-                            <option value="T2 Firestorm">T2 Firestorm</option>
-                            <option value="T2 Gamma">T2 Gamma</option>
-                            <option value="T2 Dark">T2 Dark</option>
-                            <option value="T2 Electrical">T2 Electrical</option>
-                            <option value="T1 Exotic">T1 Exotic</option>
-                            <option value="T1 Firestorm">T1 Firestorm</option>
-                            <option value="T1 Gamma">T1 Gamma</option>
-                            <option value="T1 Dark">T1 Dark</option>
-                            <option value="T1 Electrical">T1 Electrical</option>
+                            <optgroup label="Cataclysmic">
+                                <option value="T6 Exotic">T6 Exotic</option>
+                                <option value="T6 Firestorm">T6 Firestorm</option>
+                                <option value="T6 Gamma">T6 Gamma</option>
+                                <option value="T6 Dark">T6 Dark</option>
+                                <option value="T6 Electrical">T6 Electrical</option>
+                            </optgroup>
+                            <optgroup label="Chaotic">
+                                <option value="T5 Exotic">T5 Exotic</option>
+                                <option value="T5 Firestorm">T5 Firestorm</option>
+                                <option value="T5 Gamma">T5 Gamma</option>
+                                <option value="T5 Dark">T5 Dark</option>
+                                <option value="T5 Electrical">T5 Electrical</option>
+                            </optgroup>
+                            <optgroup label="Raging">
+                                <option value="T4 Exotic">T4 Exotic</option>
+                                <option value="T4 Firestorm">T4 Firestorm</option>
+                                <option value="T4 Gamma">T4 Gamma</option>
+                                <option value="T4 Dark">T4 Dark</option>
+                                <option value="T4 Electrical">T4 Electrical</option>
+                            </optgroup>
+                            <optgroup label="Fierce">
+                                <option value="T3 Exotic">T3 Exotic</option>
+                                <option value="T3 Firestorm">T3 Firestorm</option>
+                                <option value="T3 Gamma">T3 Gamma</option>
+                                <option value="T3 Dark">T3 Dark</option>
+                                <option value="T3 Electrical">T3 Electrical</option>
+                            </optgroup>
+                            <optgroup label="Agitated">
+                                <option value="T2 Exotic">T2 Exotic</option>
+                                <option value="T2 Firestorm">T2 Firestorm</option>
+                                <option value="T2 Gamma">T2 Gamma</option>
+                                <option value="T2 Dark">T2 Dark</option>
+                                <option value="T2 Electrical">T2 Electrical</option>
+                            </optgroup>
+                            <optgroup label="Calm">
+                                <option value="T1 Exotic">T1 Exotic</option>
+                                <option value="T1 Firestorm">T1 Firestorm</option>
+                                <option value="T1 Gamma">T1 Gamma</option>
+                                <option value="T1 Dark">T1 Dark</option>
+                                <option value="T1 Electrical">T1 Electrical</option>
+                            </optgroup>
                         </select>
                     </div>
                 </div>

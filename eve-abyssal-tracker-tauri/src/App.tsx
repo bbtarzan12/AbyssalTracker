@@ -91,14 +91,11 @@ function App() {
   const isDataLoadingRef = useRef(false);
 
   const triggerPopup = useCallback((title: string, message: string, type: "info" | "warning" | "error" = "info") => {
-    console.log("[DEBUG] triggerPopup called with:", { title, message, type });
     setPopupTitle(title);
     setPopupMessage(message);
     setPopupType(type);
     setShowPopup(true);
-    console.log("[DEBUG] Popup show state set to true");
     setTimeout(() => {
-      console.log("[DEBUG] Auto-hiding popup after 5 seconds");
       setShowPopup(false);
     }, 5000);
   }, []);
@@ -115,7 +112,6 @@ function App() {
 
   const loadAbyssalData = useCallback(async () => {
     if (isDataLoadingRef.current) {
-      console.log("[DEBUG] 이미 데이터 로딩 중이므로 중복 호출을 건너뜁니다.");
       return;
     }
     
@@ -126,7 +122,6 @@ function App() {
     
     try {
       const parsedResult = await invoke("analyze_abyssal_data_command") as AbyssalData;
-      console.log("[DEBUG] 로딩된 데이터:", parsedResult);
       setAbyssalData(parsedResult);
     } catch (err) {
       console.error("Failed to fetch abyssal data:", err);
@@ -141,13 +136,112 @@ function App() {
     }
   }, [triggerPopup, resetLoadingSteps]);
 
+  // 가벼운 데이터 새로고침 (로딩창 없음)
+  const lightRefreshAbyssalData = useCallback(async () => {
+    if (isDataLoadingRef.current) {
+      return;
+    }
+    
+    isDataLoadingRef.current = true;
+    setDataError(null);
+    
+    try {
+      const parsedResult = await invoke("light_refresh_abyssal_data_command") as AbyssalData;
+      setAbyssalData(parsedResult);
+    } catch (err) {
+      console.error("Failed to light refresh abyssal data:", err);
+      setDataError(`가벼운 데이터 새로고침 실패: ${err}`);
+      triggerPopup("데이터 새로고침 실패", `데이터를 새로고침하는 중 오류가 발생했습니다: ${err}`, "error");
+    } finally {
+      isDataLoadingRef.current = false;
+    }
+  }, [triggerPopup]);
+
+  // 런 삭제 후 UI 상태에서만 제거 (API 호출 없음)
+  const handleRunDeleted = useCallback((deletedRun: RunData) => {
+    if (!abyssalData) return;
+
+    const newData = { ...abyssalData };
+    
+    // df에서 삭제
+    newData.df = newData.df.filter(run => 
+      !(run['시작시각(KST)'] === deletedRun['시작시각(KST)'] && 
+        run['종료시각(KST)'] === deletedRun['종료시각(KST)'])
+    );
+    
+    // daily_stats에서 삭제
+    const runDate = deletedRun['날짜'];
+    if (newData.daily_stats[runDate]) {
+      const filteredRuns = newData.daily_stats[runDate].runs.filter(run =>
+        !(run['시작시각(KST)'] === deletedRun['시작시각(KST)'] && 
+          run['종료시각(KST)'] === deletedRun['종료시각(KST)'])
+      );
+      
+      if (filteredRuns.length === 0) {
+        // 해당 날짜의 런이 모두 없어지면 삭제
+        delete newData.daily_stats[runDate];
+      } else {
+        // 통계 재계산
+        const avg_isk = filteredRuns.reduce((sum, run) => sum + run['실수익'], 0) / filteredRuns.length;
+        const avg_time = filteredRuns.reduce((sum, run) => sum + run['런 소요(분)'], 0) / filteredRuns.length;
+        const avg_iskph = filteredRuns.reduce((sum, run) => sum + run['ISK/h'], 0) / filteredRuns.length;
+        
+        newData.daily_stats[runDate] = {
+          runs: filteredRuns,
+          avg_isk,
+          avg_time,
+          avg_iskph,
+        };
+      }
+    }
+    
+    // overall_stats 재계산
+    if (newData.df.length > 0) {
+      newData.overall_stats.avg_isk = newData.df.reduce((sum, run) => sum + run['실수익'], 0) / newData.df.length;
+      newData.overall_stats.avg_time = newData.df.reduce((sum, run) => sum + run['런 소요(분)'], 0) / newData.df.length;
+      newData.overall_stats.avg_iskph = newData.df.reduce((sum, run) => sum + run['ISK/h'], 0) / newData.df.length;
+      
+      // tier_weather_stats 재계산
+      const tierWeatherGroups: { [key: string]: RunData[] } = {};
+      newData.df.forEach(run => {
+        const parts = run['어비셜 종류'].split(' ');
+        if (parts.length >= 2) {
+          const key = `${parts[0]} ${parts[1]}`;
+          if (!tierWeatherGroups[key]) tierWeatherGroups[key] = [];
+          tierWeatherGroups[key].push(run);
+        }
+      });
+      
+      newData.overall_stats.tier_weather_stats = Object.entries(tierWeatherGroups).map(([key, runs]) => {
+        const [tier, weather] = key.split(' ');
+        return {
+          tier,
+          weather,
+          runs_count: runs.length,
+          avg_isk: runs.reduce((sum, run) => sum + run['실수익'], 0) / runs.length,
+          avg_time: runs.reduce((sum, run) => sum + run['런 소요(분)'], 0) / runs.length,
+          avg_iskph: runs.reduce((sum, run) => sum + run['ISK/h'], 0) / runs.length,
+        };
+      });
+    } else {
+      // 모든 런이 삭제된 경우
+      newData.overall_stats = {
+        avg_isk: 0,
+        avg_time: 0,
+        avg_iskph: 0,
+        tier_weather_stats: [],
+      };
+    }
+    
+    setAbyssalData(newData);
+    console.log('[INFO] UI state updated after run deletion');
+  }, [abyssalData]);
+
 
 
   useEffect(() => {
     const unlistenPopup = listen("trigger_popup", (event) => {
-      console.log("[DEBUG] Popup event received:", JSON.stringify(event.payload, null, 2));
       const payload = event.payload as { title: string; message: string; type?: "info" | "warning" | "error" };
-      console.log("[DEBUG] Calling triggerPopup with:", payload.title, payload.message, payload.type);
       triggerPopup(payload.title, payload.message, payload.type);
     });
 
@@ -157,8 +251,9 @@ function App() {
     });
 
     const unlistenAbyssalRunCompleted = listen("abyssal_run_completed", () => {
-      console.log("[DEBUG] Abyssal run completed event received - window should be opened automatically");
-      // 새 윈도우는 백엔드에서 자동으로 열림
+      // 새 런이 추가되면 자동으로 가벼운 데이터 새로고침
+      console.log('[INFO] New abyssal run detected, triggering light refresh...');
+      lightRefreshAbyssalData();
     });
 
     // 로딩 진행 상황 이벤트 수신
@@ -198,7 +293,7 @@ function App() {
       unlistenAbyssalRunCompleted.then(f => f());
       unlistenProgress.then(f => f());
     };
-  }, [triggerPopup, loadAbyssalData]);
+  }, [triggerPopup, loadAbyssalData, lightRefreshAbyssalData]);
 
   if (appInitializing || dataLoading) {
     return (
@@ -258,6 +353,8 @@ function App() {
             data={abyssalData}
             dataError={dataError}
             onRefresh={loadAbyssalData}
+            onLightRefresh={lightRefreshAbyssalData}
+            onRunDeleted={handleRunDeleted}
             triggerPopup={triggerPopup}
           />
         )}

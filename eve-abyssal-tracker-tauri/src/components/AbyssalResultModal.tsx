@@ -11,14 +11,17 @@ interface AbyssalResultModalProps {
   onCancel: () => void;
 }
 
-const ABYSSAL_TYPES = [
-  "T1 Exotic", "T1 Firestorm", "T1 Gamma", "T1 Dark", "T1 Electrical",
-  "T2 Exotic", "T2 Firestorm", "T2 Gamma", "T2 Dark", "T2 Electrical",
-  "T3 Exotic", "T3 Firestorm", "T3 Gamma", "T3 Dark", "T3 Electrical",
-  "T4 Exotic", "T4 Firestorm", "T4 Gamma", "T4 Dark", "T4 Electrical",
-  "T5 Exotic", "T5 Firestorm", "T5 Gamma", "T5 Dark", "T5 Electrical",
-  "T6 Exotic", "T6 Firestorm", "T6 Gamma", "T6 Dark", "T6 Electrical",
-];
+const ABYSSAL_TYPES_BY_TIER = {
+  "T1 (Tier 1)": ["T1 Exotic", "T1 Firestorm", "T1 Gamma", "T1 Dark", "T1 Electrical"],
+  "T2 (Tier 2)": ["T2 Exotic", "T2 Firestorm", "T2 Gamma", "T2 Dark", "T2 Electrical"],
+  "T3 (Tier 3)": ["T3 Exotic", "T3 Firestorm", "T3 Gamma", "T3 Dark", "T3 Electrical"],
+  "T4 (Tier 4)": ["T4 Exotic", "T4 Firestorm", "T4 Gamma", "T4 Dark", "T4 Electrical"],
+  "T5 (Tier 5)": ["T5 Exotic", "T5 Firestorm", "T5 Gamma", "T5 Dark", "T5 Electrical"],
+  "T6 (Tier 6)": ["T6 Exotic", "T6 Firestorm", "T6 Gamma", "T6 Dark", "T6 Electrical"],
+};
+
+// 기본값을 위한 첫 번째 타입
+const DEFAULT_TYPE = ABYSSAL_TYPES_BY_TIER["T1 (Tier 1)"][0];
 
 const AbyssalResultModal: React.FC<AbyssalResultModalProps> = ({
   show,
@@ -28,7 +31,7 @@ const AbyssalResultModal: React.FC<AbyssalResultModalProps> = ({
   onSave,
   onCancel
 }) => {
-  const [selectedType, setSelectedType] = useState(ABYSSAL_TYPES[0]);
+  const [selectedType, setSelectedType] = useState(DEFAULT_TYPE);
   const [items, setItems] = useState('');
 
   if (!show) return null;
@@ -92,10 +95,14 @@ const AbyssalResultModal: React.FC<AbyssalResultModalProps> = ({
                 onChange={(e) => setSelectedType(e.target.value)}
                 className="modern-select"
               >
-                {ABYSSAL_TYPES.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
+                {Object.entries(ABYSSAL_TYPES_BY_TIER).map(([tierName, types]) => (
+                  <optgroup key={tierName} label={tierName}>
+                    {types.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
               <div className="selected-type-preview">

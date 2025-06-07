@@ -216,31 +216,4 @@
     0 0 20px rgba(239, 68, 68, 0.1);
 }
 
-/* Responsive design */
-@media (max-width: 480px) {
-  .notifier-popup {
-    bottom: 16px;
-    right: 16px;
-    left: 16px;
-    width: auto;
-  }
-  
-  .notifier-content {
-    padding: 16px;
-  }
-  
-  .notifier-title {
-    font-size: 0.9rem;
-  }
-  
-  .notifier-message {
-    font-size: 0.85rem;
-    padding-left: calc(28px + 8px);
-  }
-  
-  .notifier-icon {
-    width: 28px;
-    height: 28px;
-    font-size: 1rem;
-  }
-} 
+ 

@@ -23,7 +23,6 @@ class UINotifier:
         try:
             while not self.popup_queue.empty():
                 request = self.popup_queue.get_nowait()
-                print(f"[DEBUG] Processing popup queue request: {request['type']}")
                 if request["type"] == "abyssal_result":
                     start_time = request["start_time"]
                     end_time = request["end_time"]

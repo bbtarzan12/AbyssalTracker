@@ -417,4 +417,253 @@ impl AbyssalDataAnalyzer {
             item_buy_price_cache,
         })
     }
+
+    // 가벼운 데이터 분석 - 기존 캐시된 가격 정보 활용
+    pub async fn light_analyze_data(&mut self, df: DataFrame) -> Result<AnalysisResult, anyhow::Error> {
+        println!("🚀 [AbyssalDataAnalyzer] 가벼운 데이터 분석 시작 (캐시된 가격 정보 활용)");
+        let start_total = std::time::Instant::now();
+
+        if df.height() == 0 {
+            println!("⚠️ 분석할 데이터가 없습니다.");
+            return Ok(AnalysisResult {
+                df: Vec::new(),
+                daily_stats: HashMap::new(),
+                overall_stats: OverallStats {
+                    avg_isk: 0.0,
+                    avg_time: 0.0,
+                    avg_iskph: 0.0,
+                    tier_weather_stats: Vec::new(),
+                },
+                item_buy_price_cache: HashMap::new(),
+            });
+        }
+
+        // 새로운 아이템들 수집
+        let mut all_item_names = std::collections::HashSet::new();
+        let acquired_items_col = df.column("획득 아이템")
+            .map_err(|e| anyhow::anyhow!("획득 아이템 컬럼 없음: {}", e))?
+            .str().unwrap();
+        
+        let data_manager = self.data_manager.lock().await;
+        for i in 0..df.height() {
+            if let Some(items_str) = acquired_items_col.get(i) {
+                let parsed_items = data_manager.parse_items(items_str);
+                for (name, _) in parsed_items {
+                    all_item_names.insert(name);
+                }
+            }
+        }
+
+        // 어비셜 타입에서 필라멘트 이름 추출
+        let abyssal_type_col = df.column("어비셜 종류")
+            .map_err(|e| anyhow::anyhow!("어비셜 종류 컬럼 없음: {}", e))?
+            .str().unwrap();
+        
+        for i in 0..df.height() {
+            if let Some(abyssal_type) = abyssal_type_col.get(i) {
+                if let Some(filament_name) = data_manager.abyssal_type_to_filament_name(abyssal_type) {
+                    all_item_names.insert(filament_name);
+                }
+            }
+        }
+        drop(data_manager);
+
+        println!("  ▶️ 총 {}개의 고유 아이템 발견", all_item_names.len());
+
+        // 기존 캐시에서 가격 정보 로드 시도
+        let mut item_buy_price_cache = HashMap::new();
+        let mut item_sell_price_cache = HashMap::new();
+        let mut missing_items = Vec::new();
+
+        // 모든 아이템을 missing으로 처리 (실제 캐시 로직은 EVEApi에서 처리됨)
+        for item_name in &all_item_names {
+            missing_items.push(item_name.clone());
+        }
+
+        // 새로운 아이템이 있으면 API 호출
+        if !missing_items.is_empty() {
+            println!("  ▶️ {}개의 새로운 아이템에 대해 API 조회 중...", missing_items.len());
+            
+            // TypeID 조회
+            let name_to_id = self.eve_api.fetch_type_ids(missing_items).await?;
+            
+            // 가격 조회
+            let type_ids: Vec<u32> = name_to_id.values().cloned().collect();
+            let prices = self.eve_api.fetch_fuzzwork_prices(type_ids).await?;
+            
+            // 가격 캐시 업데이트
+            for (name, type_id) in &name_to_id {
+                if let Some(price_data) = prices.get(&type_id.to_string()) {
+                    if let Some(buy_max_str) = price_data.get("buy")
+                        .and_then(|buy| buy.get("max"))
+                        .and_then(|max| max.as_str()) {
+                        if let Ok(buy_max) = buy_max_str.parse::<f64>() {
+                            item_buy_price_cache.insert(name.clone(), buy_max);
+                        }
+                    }
+                    
+                    if let Some(sell_min_str) = price_data.get("sell")
+                        .and_then(|sell| sell.get("min"))
+                        .and_then(|min| min.as_str()) {
+                        if let Ok(sell_min) = sell_min_str.parse::<f64>() {
+                            item_sell_price_cache.insert(name.clone(), sell_min);
+                        }
+                    }
+                }
+            }
+            println!("  ▶️ 새로운 아이템 가격 조회 완료");
+        } else {
+            println!("  ▶️ 모든 아이템이 캐시에 있음, API 호출 생략");
+        }
+
+        // 런 데이터 계산 (기존과 동일한 로직)
+        let mut runs_data = Vec::new();
+        
+        let start_time_col = df.column("시작시각(KST)").unwrap().str().unwrap();
+        let end_time_col = df.column("종료시각(KST)").unwrap().str().unwrap();
+        let run_time_col = df.column("런 소요(분)").unwrap().f64().unwrap();
+        let abyssal_type_col = df.column("어비셜 종류").unwrap().str().unwrap();
+        let acquired_items_col = df.column("획득 아이템").unwrap().str().unwrap();
+        
+        let data_manager = self.data_manager.lock().await;
+        
+        for i in 0..df.height() {
+            let start_time = start_time_col.get(i).unwrap_or("").to_string();
+            let end_time = end_time_col.get(i).unwrap_or("").to_string();
+            let run_time_minutes = run_time_col.get(i).unwrap_or(0.0);
+            let abyssal_type = abyssal_type_col.get(i).unwrap_or("").to_string();
+            let acquired_items = acquired_items_col.get(i).unwrap_or("").to_string();
+            
+            // 드롭 가격 계산
+            let drop_value: f64 = {
+                let parsed_items = data_manager.parse_items(&acquired_items);
+                parsed_items.into_iter().map(|(name, qty)| {
+                    let price = item_buy_price_cache.get(&name).unwrap_or(&0.0);
+                    price * (qty as f64)
+                }).sum()
+            };
+            
+            // 입장료 계산
+            let entry_cost: f64 = {
+                if let Some(filament) = data_manager.abyssal_type_to_filament_name(&abyssal_type) {
+                    let price = item_sell_price_cache.get(&filament).unwrap_or(&0.0);
+                    price * 3.0
+                } else {
+                    0.0
+                }
+            };
+            
+            let net_profit = drop_value - entry_cost;
+            let isk_per_hour = if run_time_minutes > 0.0 {
+                net_profit / (run_time_minutes / 60.0)
+            } else {
+                0.0
+            };
+            
+            let date = if start_time.len() >= 10 {
+                start_time[0..10].to_string()
+            } else {
+                "".to_string()
+            };
+            
+            runs_data.push(RunData {
+                start_time,
+                end_time,
+                run_time_minutes,
+                abyssal_type,
+                net_profit,
+                isk_per_hour,
+                acquired_items,
+                date,
+                drop_value,
+                entry_cost,
+            });
+        }
+        
+        drop(data_manager);
+
+        // 통계 계산 (기존과 동일)
+        let mut daily_stats = HashMap::new();
+        let mut grouped_by_date: HashMap<String, Vec<&RunData>> = HashMap::new();
+        
+        for run in &runs_data {
+            grouped_by_date.entry(run.date.clone()).or_insert_with(Vec::new).push(run);
+        }
+
+        for (date, runs) in grouped_by_date {
+            let avg_isk = if runs.is_empty() { 0.0 } else { 
+                runs.iter().map(|r| r.net_profit).sum::<f64>() / runs.len() as f64 
+            };
+            let avg_time = if runs.is_empty() { 0.0 } else { 
+                runs.iter().map(|r| r.run_time_minutes).sum::<f64>() / runs.len() as f64 
+            };
+            let avg_iskph = if runs.is_empty() { 0.0 } else { 
+                runs.iter().map(|r| r.isk_per_hour).sum::<f64>() / runs.len() as f64 
+            };
+            
+            daily_stats.insert(date, DailyStats {
+                runs: runs.into_iter().cloned().collect(),
+                avg_isk,
+                avg_time,
+                avg_iskph,
+            });
+        }
+
+        // 전체 통계 생성
+        let overall_avg_isk = if runs_data.is_empty() { 0.0 } else {
+            runs_data.iter().map(|r| r.net_profit).sum::<f64>() / runs_data.len() as f64
+        };
+        let overall_avg_time = if runs_data.is_empty() { 0.0 } else {
+            runs_data.iter().map(|r| r.run_time_minutes).sum::<f64>() / runs_data.len() as f64
+        };
+        let overall_avg_iskph = if runs_data.is_empty() { 0.0 } else {
+            runs_data.iter().map(|r| r.isk_per_hour).sum::<f64>() / runs_data.len() as f64
+        };
+
+        // 티어/웨더별 통계
+        let mut tier_weather_groups: HashMap<(String, String), Vec<&RunData>> = HashMap::new();
+        for run in &runs_data {
+            let parts: Vec<&str> = run.abyssal_type.split_whitespace().collect();
+            if parts.len() >= 2 {
+                let tier = parts[0].to_string();
+                let weather = parts[1].to_string();
+                tier_weather_groups.entry((tier, weather)).or_insert_with(Vec::new).push(run);
+            }
+        }
+
+        let mut tier_weather_stats = Vec::new();
+        for ((tier, weather), runs) in tier_weather_groups {
+            if !runs.is_empty() {
+                let avg_isk = runs.iter().map(|r| r.net_profit).sum::<f64>() / runs.len() as f64;
+                let avg_time = runs.iter().map(|r| r.run_time_minutes).sum::<f64>() / runs.len() as f64;
+                let avg_iskph = runs.iter().map(|r| r.isk_per_hour).sum::<f64>() / runs.len() as f64;
+                
+                tier_weather_stats.push(TierWeatherStats {
+                    tier,
+                    weather,
+                    runs_count: runs.len(),
+                    avg_isk,
+                    avg_time,
+                    avg_iskph,
+                });
+            }
+        }
+
+        let overall_stats = OverallStats {
+            avg_isk: overall_avg_isk,
+            avg_time: overall_avg_time,
+            avg_iskph: overall_avg_iskph,
+            tier_weather_stats,
+        };
+
+        let end_total = start_total.elapsed();
+        println!("✨ [AbyssalDataAnalyzer] 가벼운 데이터 분석 완료. 소요 시간: {:.2}초 ✨", end_total.as_secs_f64());
+        
+        Ok(AnalysisResult {
+            df: runs_data,
+            daily_stats,
+            overall_stats,
+            item_buy_price_cache,
+        })
+    }
 }
