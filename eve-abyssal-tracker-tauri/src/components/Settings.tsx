@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Dispatch, SetStateAction } from 'react';
 import './Settings.css';
+import { revealItemInDir } from '@tauri-apps/plugin-opener';
+import { invoke } from "@tauri-apps/api/core";
 
 interface GeneralConfig {
   log_path: string;
   character_name: string;
-  language: string;
 }
 
 interface TrackerConfig {
@@ -19,8 +20,6 @@ interface AppConfig {
   tracker: TrackerConfig;
 }
 
-import { invoke } from "@tauri-apps/api/core";
-
 interface SettingsProps {
   logMonitorRunning: boolean;
   setLogMonitorRunning: Dispatch<SetStateAction<boolean>>;
@@ -32,7 +31,6 @@ const Settings: React.FC<SettingsProps> = ({ logMonitorRunning, setLogMonitorRun
     general: {
       log_path: '',
       character_name: '',
-      language: '',
     },
     tracker: {
       abyssal_data_path: '',
@@ -64,7 +62,6 @@ const Settings: React.FC<SettingsProps> = ({ logMonitorRunning, setLogMonitorRun
     try {
       await invoke("set_log_path", { path: config.general.log_path });
       await invoke("set_character_name", { characterName: config.general.character_name });
-      await invoke("set_language", { language: config.general.language });
       triggerPopup("설정 저장 완료", "설정이 성공적으로 저장되었습니다.", "info");
       setIsDirty(false);
     } catch (e) {
@@ -72,6 +69,17 @@ const Settings: React.FC<SettingsProps> = ({ logMonitorRunning, setLogMonitorRun
       triggerPopup("저장 실패", `설정 저장에 실패했습니다: ${e}`, "error");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleOpenCsvFolder = async () => {
+    try {
+      const dataPath = await invoke("get_csv_data_path") as string;
+      await revealItemInDir(dataPath);
+      triggerPopup("폴더 열기", "CSV 데이터 폴더가 열렸습니다.", "info");
+    } catch (e) {
+      console.error("Failed to open CSV folder:", e);
+      triggerPopup("폴더 열기 실패", `CSV 폴더 열기에 실패했습니다: ${e}`, "error");
     }
   };
 
@@ -184,21 +192,17 @@ const Settings: React.FC<SettingsProps> = ({ logMonitorRunning, setLogMonitorRun
             </div>
 
             <div className="config-field">
-              <label className="field-label" htmlFor="language">
-                <span className="label-text">🌐 언어</span>
-                <span className="label-hint">애플리케이션 표시 언어</span>
+              <label className="field-label">
+                <span className="label-text">📊 CSV 데이터 폴더</span>
+                <span className="label-hint">어비셜 결과 CSV 파일이 저장된 폴더</span>
               </label>
-              <select
-                id="language"
-                name="language"
-                value={config.general.language || ''}
-                onChange={handleChange}
-                className="field-select"
+              <button
+                onClick={handleOpenCsvFolder}
+                className="control-button secondary"
               >
-                <option value="">언어를 선택하세요</option>
-                <option value="ko">한국어 (Korean)</option>
-                <option value="en">English</option>
-              </select>
+                <span className="button-icon">📂</span>
+                <span className="button-text">CSV 폴더 열기</span>
+              </button>
             </div>
 
 
@@ -245,28 +249,25 @@ const Settings: React.FC<SettingsProps> = ({ logMonitorRunning, setLogMonitorRun
             <div className="control-card">
               <div className="card-header">
                 <div className="card-icon">🧪</div>
-                <div className="card-title">테스트 인터페이스</div>
+                <div className="card-title">어비셜 결과 창 테스트</div>
               </div>
               <div className="card-content">
                 <p className="card-description">
-                  어비셜 결과 창 기능을 테스트합니다
+                  어비셜 결과 창이 정상적으로 표시되는지 테스트합니다
                 </p>
                 <button
                   onClick={handleTestWindow}
                   className="control-button secondary"
                 >
-                  <span className="button-icon">🔬</span>
+                  <span className="button-icon">🚀</span>
                   <span className="button-text">테스트 실행</span>
                 </button>
               </div>
             </div>
           </div>
         </div>
-
-
       </div>
 
-      {/* Footer Actions */}
       <div className="settings-footer">
         <div className="footer-content">
           <div className="footer-info">

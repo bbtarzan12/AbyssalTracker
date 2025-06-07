@@ -473,6 +473,29 @@ async fn install_update(app_handle: AppHandle) -> Result<String, String> {
 }
 
 #[tauri::command]
+async fn get_csv_data_path(app_handle: AppHandle) -> Result<String, String> {
+    let data_dir_path = match app_handle.path().app_data_dir() {
+        Ok(app_data_dir) => {
+            let data_dir = app_data_dir.join("data");
+            // 디렉토리가 없으면 생성
+            if let Err(e) = std::fs::create_dir_all(&data_dir) {
+                eprintln!("Warning: Failed to create app data directory: {}", e);
+                // 실패 시 현재 디렉토리의 data 폴더 사용
+                std::path::PathBuf::from("data")
+            } else {
+                data_dir
+            }
+        },
+        Err(e) => {
+            eprintln!("Warning: Failed to get app data directory: {}, using local data directory", e);
+            std::path::PathBuf::from("data")
+        }
+    };
+    
+    Ok(data_dir_path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
 async fn export_daily_analysis(
     app_handle: AppHandle,
     selected_date: String,
@@ -607,11 +630,10 @@ pub fn run() {
                 // 6. EveLogProcessor 초기화 (Python과 동일)
                 let config_lock = config_manager.lock().await;
                 let logs_path = std::path::PathBuf::from(config_lock.get_logs_path());
-                let language = Some(config_lock.get_language()).filter(|s| !s.is_empty());
                 drop(config_lock);
                 
                 let eve_log_processor = Arc::new(Mutex::new(
-                    EveLogProcessor::new(logs_path.clone(), language.clone())
+                    EveLogProcessor::new(logs_path.clone(), None)
                 ));
                 app_handle.manage(eve_log_processor.clone());
 
@@ -740,7 +762,6 @@ pub fn run() {
             config_manager::get_config,
             config_manager::set_log_path,
             config_manager::set_character_name,
-            config_manager::set_language,
             load_abyssal_results_command,
             save_abyssal_result_command,
             save_abyssal_result,
@@ -760,6 +781,7 @@ pub fn run() {
             get_filament_name,
             get_icon_url,
             get_best_image_url,
+            get_csv_data_path,
             export_daily_analysis,
             check_for_updates,
             install_update,

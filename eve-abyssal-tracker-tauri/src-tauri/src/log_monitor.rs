@@ -65,7 +65,7 @@ impl LogMonitor {
         let config_manager = self.config_manager.lock().await;
         self.logs_path = PathBuf::from(config_manager.get_logs_path());
         self.character_name = config_manager.get_character_name();
-        self.language = Some(config_manager.get_language()).filter(|s| !s.is_empty());
+        self.language = None;
         drop(config_manager);
 
         // log_processor 설정 - 더 이상 lock 필요 없음!

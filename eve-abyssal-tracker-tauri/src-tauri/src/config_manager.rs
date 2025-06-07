@@ -16,7 +16,6 @@ pub struct AppConfig {
 pub struct GeneralConfig {
     pub log_path: String,
     pub character_name: String,
-    pub language: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -40,7 +39,6 @@ impl Default for AppConfig {
             general: GeneralConfig {
                 log_path: logs_path,
                 character_name: String::new(),
-                language: String::new(),
             },
             tracker: TrackerConfig {
                 abyssal_data_path: String::from("data"),
@@ -97,9 +95,6 @@ impl ConfigManager {
         if let Some(character_name) = config_ini.get("default", "character_name") {
             app_config.general.character_name = character_name;
         }
-        if let Some(language) = config_ini.get("default", "language") {
-            app_config.general.language = language;
-        }
 
 
         if let Some(abyssal_data_path) = config_ini.get("tracker", "abyssal_data_path") {
@@ -122,7 +117,6 @@ impl ConfigManager {
 
         config_ini.set("default", "logs_path", Some(self.config.general.log_path.clone()));
         config_ini.set("default", "character_name", Some(self.config.general.character_name.clone()));
-        config_ini.set("default", "language", Some(self.config.general.language.clone()));
 
         config_ini.set("tracker", "abyssal_data_path", Some(self.config.tracker.abyssal_data_path.clone()));
         config_ini.set("tracker", "daily_stats_path", Some(self.config.tracker.daily_stats_path.clone()));
@@ -156,10 +150,6 @@ impl ConfigManager {
 
     pub fn get_character_name(&self) -> String {
         self.config.general.character_name.trim().to_string()
-    }
-
-    pub fn get_language(&self) -> String {
-        self.config.general.language.trim().to_string()
     }
 }
 
@@ -200,18 +190,3 @@ pub async fn set_character_name(
     Ok(())
 }
 
-#[tauri::command]
-pub async fn set_language(
-    app_handle: AppHandle,
-    state: State<'_, Arc<tokio::sync::Mutex<ConfigManager>>>, 
-    language: String
-) -> Result<(), String> {
-    let mut config_manager = state.inner().lock().await;
-    config_manager.config.general.language = language;
-    config_manager.save().map_err(|e| e.to_string())?;
-    drop(config_manager);
-    
-    // LogMonitor 재시작
-    crate::restart_log_monitor_if_running(&app_handle).await?;
-    Ok(())
-}
