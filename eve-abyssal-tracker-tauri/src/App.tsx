@@ -5,6 +5,7 @@ import TitleBar from "./components/TitleBar";
 import StatsDisplay from "./components/StatsDisplay";
 import Settings from "./components/Settings";
 import NotifierPopup from "./components/NotifierPopup";
+import UpdateDialog from "./components/UpdateDialog";
 
 import LoadingProgress from "./components/LoadingProgress";
 import "./App.css";
@@ -75,6 +76,14 @@ function App() {
   const [logMonitorRunning, setLogMonitorRunning] = useState(false);
   const [appInitializing, setAppInitializing] = useState(true);
   
+  // 업데이트 관련 상태
+  const [showUpdateDialog, setShowUpdateDialog] = useState(false);
+  const [latestVersion, setLatestVersion] = useState("");
+  const [currentVersion, setCurrentVersion] = useState("1.0.22");
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [isDownloadingUpdate, setIsDownloadingUpdate] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  
 
   
   // 데이터 관련 상태
@@ -98,6 +107,66 @@ function App() {
     setTimeout(() => {
       setShowPopup(false);
     }, 5000);
+  }, []);
+
+  // 수동 업데이트 체크 함수 (설정 페이지에서 사용)
+  const checkForUpdatesManually = useCallback(async () => {
+    if (checkingUpdate) return;
+    
+    setCheckingUpdate(true);
+    try {
+      const updateInfo = await invoke("check_for_update_command") as { available: boolean; latest_version: string };
+      
+      if (updateInfo.available) {
+        setLatestVersion(updateInfo.latest_version);
+        setShowUpdateDialog(true);
+      } else {
+        triggerPopup("업데이트", "현재 최신 버전을 사용 중입니다.", "info");
+      }
+    } catch (error) {
+      console.error("업데이트 체크 실패:", error);
+      triggerPopup("업데이트 체크 실패", `업데이트 확인 중 오류가 발생했습니다: ${error}`, "error");
+    } finally {
+      setCheckingUpdate(false);
+    }
+  }, [checkingUpdate, triggerPopup]);
+
+  // 업데이트 실행 함수
+  const handleUpdate = useCallback(async () => {
+    setIsDownloadingUpdate(true);
+    setDownloadProgress(0);
+    
+    try {
+      // 가짜 진행률 표시 (실제 다운로드 진행률은 백엔드에서 구현하기 복잡하므로)
+      const progressInterval = setInterval(() => {
+        setDownloadProgress(prev => {
+          if (prev >= 95) return prev;
+          return prev + Math.random() * 10;
+        });
+      }, 200);
+      
+      await invoke("download_and_install_update_command");
+      
+      clearInterval(progressInterval);
+      setDownloadProgress(100);
+      
+      // 즉시 다이얼로그 닫기 (설치 프로그램이 시작되면 앱이 곧바로 종료됨)
+      setShowUpdateDialog(false);
+      
+    } catch (error) {
+      console.error("업데이트 실행 실패:", error);
+      setIsDownloadingUpdate(false);
+      setDownloadProgress(0);
+      triggerPopup("업데이트 실패", `업데이트 중 오류가 발생했습니다: ${error}`, "error");
+    }
+  }, [triggerPopup]);
+
+  // 업데이트 다이얼로그 닫기
+  const handleCloseUpdateDialog = useCallback(() => {
+    setShowUpdateDialog(false);
+    setIsDownloadingUpdate(false);
+    setDownloadProgress(0);
+    // 데이터는 이미 로딩되었으므로 별도 작업 불필요
   }, []);
 
   const resetLoadingSteps = useCallback(() => {
@@ -276,9 +345,27 @@ function App() {
     // 앱 초기화 및 데이터 로딩 처리
     const initializeApp = async () => {
       try {
-        await loadAbyssalData(); // 데이터 로딩
+        // 1. 데이터 로딩 먼저 진행
+        await loadAbyssalData();
         
-        // 자동 업데이트 제거됨 - 설정 페이지에서 수동으로 확인 가능
+        // 2. 데이터 로딩 완료 후 백그라운드에서 업데이트 체크 (블로킹하지 않음)
+        if (!checkingUpdate) {
+          setCheckingUpdate(true);
+          invoke("check_for_update_command")
+            .then((updateInfo: any) => {
+              if (updateInfo.available) {
+                setLatestVersion(updateInfo.latest_version);
+                setShowUpdateDialog(true);
+              }
+            })
+            .catch((error) => {
+              console.error("업데이트 체크 실패:", error);
+              // 업데이트 체크 실패는 조용히 처리
+            })
+            .finally(() => {
+              setCheckingUpdate(false);
+            });
+        }
         
         setAppInitializing(false);
       } catch (error) {
@@ -316,6 +403,15 @@ function App() {
         message={popupMessage}
         type={popupType}
         onClose={() => setShowPopup(false)}
+      />
+      <UpdateDialog
+        show={showUpdateDialog}
+        latestVersion={latestVersion}
+        currentVersion={currentVersion}
+        onClose={handleCloseUpdateDialog}
+        onUpdate={handleUpdate}
+        isDownloading={isDownloadingUpdate}
+        downloadProgress={downloadProgress}
       />
       <div className="app-container">
         <TitleBar />

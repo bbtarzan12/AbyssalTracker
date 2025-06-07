@@ -361,7 +361,7 @@ async fn get_best_image_url(app_handle: AppHandle, type_id: u32, item_name: Stri
 }
 
 #[tauri::command]
-async fn check_for_updates(app_handle: AppHandle) -> Result<String, String> {
+async fn check_for_update_command(app_handle: AppHandle) -> Result<serde_json::Value, String> {
     let current_version = app_handle.package_info().version.to_string();
     
     // GitHub API를 통해 최신 버전 정보 가져오기
@@ -382,11 +382,14 @@ async fn check_for_updates(app_handle: AppHandle) -> Result<String, String> {
     
     if needs_update {
         println!("[INFO] Update available - Current: {}, Latest: {}", current_version, latest_version);
-        Ok(format!("업데이트 가능: 버전 {}", latest_version))
     } else {
         println!("[INFO] No updates available - Current: {}, Latest: {} (already up to date)", current_version, latest_version);
-        Ok("최신 버전입니다".to_string())
     }
+    
+    Ok(serde_json::json!({
+        "available": needs_update,
+        "latest_version": latest_version
+    }))
 }
 
 // 버전 비교 함수 (semantic version)
@@ -479,7 +482,7 @@ async fn get_latest_github_release() -> Result<(String, String), String> {
 
 
 #[tauri::command]
-async fn install_update(app_handle: AppHandle) -> Result<String, String> {
+async fn download_and_install_update_command(app_handle: AppHandle) -> Result<String, String> {
     let current_version = app_handle.package_info().version.to_string();
     
     // GitHub API를 통해 최신 버전 정보와 다운로드 URL 가져오기
@@ -523,23 +526,22 @@ async fn install_update(app_handle: AppHandle) -> Result<String, String> {
     
     println!("[INFO] Downloaded installer to: {}", installer_path.display());
     
-    // 설치 파일 실행
-    let mut command = std::process::Command::new(&installer_path);
-    command.arg("/S"); // Silent 설치 옵션 (NSIS)
+    // 설치 파일 실행 (일반적인 더블클릭 방식)
+    println!("[INFO] Launching installer: {}", installer_path.display());
     
-    match command.spawn() {
+    match std::process::Command::new(&installer_path).spawn() {
         Ok(_) => {
-            println!("[INFO] Installer launched successfully");
+            println!("[INFO] Installer launched successfully, exiting application immediately");
             
-            // 현재 앱 종료
+            // 설치 프로그램이 시작되면 즉시 앱 종료
             std::thread::spawn(move || {
-                std::thread::sleep(std::time::Duration::from_secs(2));
                 std::process::exit(0);
             });
             
-            Ok("업데이트 설치를 시작했습니다. 잠시후 애플리케이션이 종료됩니다.".to_string())
+            Ok("업데이트 설치 프로그램이 시작되었습니다.".to_string())
         },
         Err(e) => {
+            println!("[ERROR] Failed to launch installer: {}", e);
             // 파일 정리
             let _ = std::fs::remove_file(&installer_path);
             Err(format!("설치 파일 실행 실패: {}", e))
@@ -857,8 +859,8 @@ pub fn run() {
             get_best_image_url,
             get_csv_data_path,
             export_daily_analysis,
-            check_for_updates,
-            install_update,
+            check_for_update_command,
+            download_and_install_update_command,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
