@@ -364,19 +364,30 @@ async fn get_best_image_url(app_handle: AppHandle, type_id: u32, item_name: Stri
 async fn check_for_updates(app_handle: AppHandle) -> Result<String, String> {
     use tauri_plugin_updater::UpdaterExt;
     
+    let current_version = app_handle.package_info().version.to_string();
+    
+    // GitHub API를 통해 최신 버전 정보 가져오기
+    let latest_version = match get_latest_github_version().await {
+        Ok(version) => version,
+        Err(e) => {
+            println!("[WARN] Failed to get latest version from GitHub: {}", e);
+            "unknown".to_string()
+        }
+    };
+    
     match app_handle.updater_builder().build() {
         Ok(updater) => {
             match updater.check().await {
                 Ok(Some(update)) => {
-                    println!("[INFO] Update available: {}", update.version);
+                    println!("[INFO] Update available - Current: {}, Latest: {}", current_version, update.version);
                     Ok(format!("업데이트 가능: 버전 {}", update.version))
                 },
                 Ok(None) => {
-                    println!("[INFO] No updates available");
+                    println!("[INFO] No updates available - Current: {}, Latest: {} (already up to date)", current_version, latest_version);
                     Ok("최신 버전입니다".to_string())
                 },
                 Err(e) => {
-                    println!("[ERROR] Failed to check for updates: {}", e);
+                    println!("[ERROR] Failed to check for updates - Current: {}, Latest: {}, Error: {}", current_version, latest_version, e);
                     Err(format!("업데이트 확인 실패: {}", e))
                 }
             }
@@ -385,32 +396,76 @@ async fn check_for_updates(app_handle: AppHandle) -> Result<String, String> {
     }
 }
 
+async fn get_latest_github_version() -> Result<String, String> {
+    use std::collections::HashMap;
+    
+    let client = reqwest::Client::new();
+    let response = client
+        .get("https://api.github.com/repos/bbtarzan12/AbyssalTracker/releases/latest")
+        .header("User-Agent", "EVE-Abyssal-Tracker")
+        .send()
+        .await
+        .map_err(|e| format!("Failed to fetch latest release: {}", e))?;
+        
+    if !response.status().is_success() {
+        return Err(format!("GitHub API error: {}", response.status()));
+    }
+    
+    let json: HashMap<String, serde_json::Value> = response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse JSON: {}", e))?;
+        
+    let tag_name = json.get("tag_name")
+        .and_then(|v| v.as_str())
+        .ok_or("No tag_name found in response")?;
+        
+    // "v1.0.4" 형태에서 "v" 제거
+    let version = if tag_name.starts_with('v') {
+        tag_name[1..].to_string()
+    } else {
+        tag_name.to_string()
+    };
+    
+    Ok(version)
+}
+
+
+
 #[tauri::command]
 async fn install_update(app_handle: AppHandle) -> Result<String, String> {
     use tauri_plugin_updater::UpdaterExt;
+    
+    let current_version = app_handle.package_info().version.to_string();
     
     match app_handle.updater_builder().build() {
         Ok(updater) => {
             match updater.check().await {
                 Ok(Some(update)) => {
-                    println!("[INFO] Installing update: {}", update.version);
+                    println!("[INFO] Installing update - Current: {}, Installing: {}", current_version, update.version);
                     match update.download_and_install(|chunk_length, content_length| {
                         println!("Downloaded {} of {:?}", chunk_length, content_length);
                     }, || {
                         println!("Download finished");
                     }).await {
                         Ok(_) => {
-                            println!("[INFO] Update installed successfully");
+                            println!("[INFO] Update installed successfully - Updated from {} to {}", current_version, update.version);
                             Ok("업데이트가 설치되었습니다. 애플리케이션을 다시 시작해주세요.".to_string())
                         },
                         Err(e) => {
-                            println!("[ERROR] Failed to install update: {}", e);
+                            println!("[ERROR] Failed to install update - Current: {}, Target: {}, Error: {}", current_version, update.version, e);
                             Err(format!("업데이트 설치 실패: {}", e))
                         }
                     }
                 },
-                Ok(None) => Ok("설치할 업데이트가 없습니다".to_string()),
-                Err(e) => Err(format!("업데이트 확인 실패: {}", e))
+                Ok(None) => {
+                    println!("[INFO] No update to install - Current version: {} (latest)", current_version);
+                    Ok("설치할 업데이트가 없습니다".to_string())
+                },
+                Err(e) => {
+                    println!("[ERROR] Update check failed during install - Current version: {}, Error: {}", current_version, e);
+                    Err(format!("업데이트 확인 실패: {}", e))
+                }
             }
         },
         Err(e) => Err(format!("Updater initialization failed: {}", e))

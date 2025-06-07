@@ -34,28 +34,17 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: './eve-abyssal-tracker-tauri/src-tauri -> target'
+          shared-key: "release-build"
+          cache-all-crates: true
           cache-on-failure: true
-          shared-key: "windows-release"
 
       - name: Cache Tauri CLI
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.cargo/bin/cargo-tauri*
-            ~/.cargo/.crates.toml
-            ~/.cargo/.crates2.json
-          key: ${{ runner.os }}-tauri-cli-${{ hashFiles('./eve-abyssal-tracker-tauri/package.json') }}
+          path: ~/.cargo/bin/cargo-tauri*
+          key: tauri-cli-${{ runner.os }}
           restore-keys: |
-            ${{ runner.os }}-tauri-cli-
-
-      - name: Cache Build Tools
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.tauri
-          key: ${{ runner.os }}-tauri-tools-v2
-          restore-keys: |
-            ${{ runner.os }}-tauri-tools-
+            tauri-cli-
 
       - name: Install dependencies
         working-directory: ./eve-abyssal-tracker-tauri
@@ -68,8 +57,12 @@ jobs:
         with:
           projectPath: './eve-abyssal-tracker-tauri'
           tagName: ${{ github.ref_name }}
-          releaseName: 'EVE Abyssal Tracker v__VERSION__ (Windows)'
+          releaseName: 'EVE Abyssal Tracker ${{ github.ref_name }} (Windows)'
           releaseBody: |
-            ## EVE Abyssal Tracker v${{ needs.build.outputs.version }}
+            ## EVE Abyssal Tracker ${{ github.ref_name }}
+            
+            Windows용 설치 파일을 제공합니다.
+            - MSI 설치 파일
+            - NSIS 설치 파일 (권장)
           releaseDraft: false
           prerelease: false 

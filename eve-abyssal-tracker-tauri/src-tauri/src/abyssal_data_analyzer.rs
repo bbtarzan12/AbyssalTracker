@@ -218,12 +218,10 @@ impl AbyssalDataAnalyzer {
                         },
                         Err(_) => {
                             item_buy_price_cache.insert(name.clone(), 0.0);
-                            println!("[WARNING] 아이템 '{}'의 구매 가격 파싱 오류. 0으로 설정됨. 값: '{}'", name, buy_max_str);
                         }
                     }
                 } else {
                     item_buy_price_cache.insert(name.clone(), 0.0);
-                    println!("[WARNING] 아이템 '{}'의 구매 가격 데이터 없음. 0으로 설정됨.", name);
                 }
                 
                 // sell.min 가격 추출 (문자열로 반환되므로 parse 필요)
@@ -236,17 +234,14 @@ impl AbyssalDataAnalyzer {
                         },
                         Err(_) => {
                             item_sell_price_cache.insert(name.clone(), 0.0);
-                            println!("[WARNING] 아이템 '{}'의 판매 가격 파싱 오류. 0으로 설정됨. 값: '{}'", name, sell_min_str);
                         }
                     }
                 } else {
                     item_sell_price_cache.insert(name.clone(), 0.0);
-                    println!("[WARNING] 아이템 '{}'의 판매 가격 데이터 없음. 0으로 설정됨.", name);
                 }
             } else {
                 item_buy_price_cache.insert(name.clone(), 0.0);
                 item_sell_price_cache.insert(name.clone(), 0.0);
-                println!("[WARNING] 아이템 '{}' ({})에 대한 가격 데이터 없음. 0으로 설정됨.", name, type_id);
             }
         }
 

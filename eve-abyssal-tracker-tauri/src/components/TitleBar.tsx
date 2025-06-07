@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { getVersion } from '@tauri-apps/api/app';
 import './TitleBar.css';
 
 const TitleBar: React.FC = () => {
   const [isMaximized, setIsMaximized] = useState(false);
+  const [appVersion, setAppVersion] = useState('');
 
   useEffect(() => {
     const checkMaximized = async () => {
@@ -12,7 +14,18 @@ const TitleBar: React.FC = () => {
       setIsMaximized(maximized);
     };
 
+    const getAppVersion = async () => {
+      try {
+        const version = await getVersion();
+        setAppVersion(version);
+      } catch (error) {
+        console.error('Failed to get app version:', error);
+        setAppVersion('Unknown'); // fallback - should not happen
+      }
+    };
+
     checkMaximized();
+    getAppVersion();
   }, []);
 
   const handleMinimize = async () => {
@@ -44,7 +57,7 @@ const TitleBar: React.FC = () => {
             <span className="app-icon">🚀</span>
           </div>
           <div className="titlebar-title">
-            EVE Abyssal Tracker
+            EVE Abyssal Tracker v{appVersion}
           </div>
         </div>
       </div>

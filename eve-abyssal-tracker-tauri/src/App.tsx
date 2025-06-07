@@ -277,6 +277,17 @@ function App() {
     const initializeApp = async () => {
       try {
         await loadAbyssalData(); // 데이터 로딩
+        
+        // 앱 시작 시 자동 업데이트 확인
+        try {
+          const updateResult = await invoke("check_for_updates") as string;
+          if (updateResult.includes("업데이트 가능")) {
+            triggerPopup("업데이트 알림", updateResult, "info");
+          }
+        } catch (e) {
+          console.log("업데이트 확인 건너뜀:", e);
+        }
+        
         setAppInitializing(false);
       } catch (error) {
         console.error("앱 초기화 실패:", error);
