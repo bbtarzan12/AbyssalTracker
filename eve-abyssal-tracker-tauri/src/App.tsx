@@ -6,6 +6,7 @@ import StatsDisplay from "./components/StatsDisplay";
 import Settings from "./components/Settings";
 import NotifierPopup from "./components/NotifierPopup";
 import UpdateDialog from "./components/UpdateDialog";
+import InitialSetup from "./components/InitialSetup";
 
 import LoadingProgress from "./components/LoadingProgress";
 import "./App.css";
@@ -34,6 +35,8 @@ function App() {
   const [popupType, setPopupType] = useState<"info" | "warning" | "error">("info");
   const [logMonitorRunning, setLogMonitorRunning] = useState(false);
   const [appInitializing, setAppInitializing] = useState(true);
+  const [needsInitialSetup, setNeedsInitialSetup] = useState(false);
+  const [checkingConfig, setCheckingConfig] = useState(true);
   
   // 업데이트 관련 상태
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
@@ -244,7 +247,18 @@ function App() {
     console.log('[INFO] UI state updated after run deletion');
   }, [abyssalData]);
 
-
+  // 초기 설정 완료 후 데이터 로딩
+  const handleSetupComplete = useCallback(async () => {
+    setNeedsInitialSetup(false);
+    setAppInitializing(true);
+    try {
+      await loadAbyssalData();
+    } catch (error) {
+      console.error("데이터 로딩 실패:", error);
+    } finally {
+      setAppInitializing(false);
+    }
+  }, [loadAbyssalData]);
 
   useEffect(() => {
     const unlistenPopup = listen("trigger_popup", (event) => {
@@ -280,14 +294,38 @@ function App() {
       }));
     });
 
-    // 앱 초기화 및 데이터 로딩 처리
+    // 설정 확인 함수
+    const checkInitialConfig = async () => {
+      try {
+        const config = await invoke("get_config") as any;
+        const hasLogPath = config.general.log_path && config.general.log_path.trim() !== '';
+        const hasCharacterName = config.general.character_name && config.general.character_name.trim() !== '';
+        
+        if (!hasLogPath || !hasCharacterName) {
+          setNeedsInitialSetup(true);
+          setAppInitializing(false);
+        } else {
+          setNeedsInitialSetup(false);
+          await loadAbyssalData();
+          setAppInitializing(false);
+        }
+      } catch (error) {
+        console.error("설정 확인 실패:", error);
+        setNeedsInitialSetup(true);
+        setAppInitializing(false);
+      } finally {
+        setCheckingConfig(false);
+      }
+    };
+
+  // 앱 초기화 및 데이터 로딩 처리
     const initializeApp = async () => {
       try {
-        // 1. 데이터 로딩 먼저 진행
-        await loadAbyssalData();
+        // 1. 먼저 설정 확인
+        await checkInitialConfig();
         
-        // 2. 데이터 로딩 완료 후 백그라운드에서 업데이트 체크 (블로킹하지 않음)
-        if (!checkingUpdate) {
+        // 2. 설정이 완료된 경우에만 백그라운드에서 업데이트 체크
+        if (!needsInitialSetup && !checkingUpdate) {
           setCheckingUpdate(true);
           invoke("check_for_update_command")
             .then((updateInfo: any) => {
@@ -304,11 +342,10 @@ function App() {
               setCheckingUpdate(false);
             });
         }
-        
-        setAppInitializing(false);
       } catch (error) {
         console.error("앱 초기화 실패:", error);
         setAppInitializing(false);
+        setCheckingConfig(false);
       }
     };
 
@@ -323,12 +360,18 @@ function App() {
     };
   }, [triggerPopup, loadAbyssalData, lightRefreshAbyssalData]);
 
-  if (appInitializing || dataLoading) {
+  // 초기 설정이 필요한 경우
+  if (needsInitialSetup) {
+    return <InitialSetup onSetupComplete={handleSetupComplete} />;
+  }
+
+  // 앱 초기화 중이거나 데이터 로딩 중인 경우
+  if (appInitializing || dataLoading || checkingConfig) {
     return (
       <LoadingProgress 
         show={true} 
         steps={loadingSteps}
-        title={appInitializing ? "EVE Abyssal Tracker 시작 중..." : "데이터 로딩 및 분석 중..."}
+        title={checkingConfig ? "설정 확인 중..." : appInitializing ? "EVE Abyssal Tracker 시작 중..." : "데이터 로딩 및 분석 중..."}
       />
     );
   }
