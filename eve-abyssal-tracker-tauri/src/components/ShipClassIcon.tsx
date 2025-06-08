@@ -57,10 +57,10 @@ const ShipClassIcon: React.FC<ShipClassIconProps> = ({
 
   const getImagePath = (shipClass: number): string => {
     switch (shipClass) {
-      case 3: return '/src/assets/icons/frigate.png';
-      case 2: return '/src/assets/icons/destroyer.png';
-      case 1: return '/src/assets/icons/cruiser.png';
-      default: return '/src/assets/icons/cruiser.png';
+      case 3: return '/icons/frigate.png';
+      case 2: return '/icons/destroyer.png';
+      case 1: return '/icons/cruiser.png';
+      default: return '/icons/cruiser.png';
     }
   };
 
