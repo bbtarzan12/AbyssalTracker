@@ -70,6 +70,8 @@ const DailyStatsDisplay: React.FC<DailyStatsDisplayProps> = ({
 
   // 각 런의 펼침/접힘 상태를 관리하는 상태
   const [expandedRuns, setExpandedRuns] = useState<Record<number, boolean>>({});
+  // CSV 내보내기 로딩 상태
+  const [isExporting, setIsExporting] = useState(false);
 
   // 런 제목 클릭 시 상태 토글 함수
   const toggleRunExpansion = (index: number) => {
@@ -104,6 +106,7 @@ const DailyStatsDisplay: React.FC<DailyStatsDisplayProps> = ({
 
   const handleExportCSV = async () => {
     try {
+      setIsExporting(true);
       console.log('[INFO] Starting CSV export for date:', selectedDate);
       await invoke('export_daily_analysis', {
         selectedDate: selectedDate,
@@ -113,6 +116,8 @@ const DailyStatsDisplay: React.FC<DailyStatsDisplayProps> = ({
     } catch (error) {
       console.error('[ERROR] Failed to export CSV:', error);
       alert(`CSV 내보내기에 실패했습니다: ${error}`);
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -171,9 +176,13 @@ const DailyStatsDisplay: React.FC<DailyStatsDisplayProps> = ({
         <div className="data-table-header">
           <h3 className="table-title">🚀 런 상세 정보</h3>
           <div className="table-actions">
-            <button className="export-btn" onClick={handleExportCSV}>
-              <span>📤</span>
-              CSV 내보내기
+            <button 
+              className={`export-btn ${isExporting ? 'loading' : ''}`} 
+              onClick={handleExportCSV}
+              disabled={isExporting}
+            >
+              <span>{isExporting ? '⏳' : '📤'}</span>
+              {isExporting ? 'CSV 내보내는중...' : 'CSV 내보내기'}
             </button>
             <button className="toolbar-btn" onClick={() => setExpandedRuns({})}>
               <span>📋</span>

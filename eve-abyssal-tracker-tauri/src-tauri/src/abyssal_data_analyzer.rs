@@ -265,14 +265,6 @@ impl AbyssalDataAnalyzer {
         // 함급 컬럼은 선택적 (기존 CSV와의 호환성)
         let ship_class_col_i32 = df.column("함급").ok().and_then(|col| col.i32().ok());
         let ship_class_col_i64 = df.column("함급").ok().and_then(|col| col.i64().ok());
-        println!("DEBUG light_analyze_data: ship_class_col_i32 exists: {:?}, ship_class_col_i64 exists: {:?}", 
-                ship_class_col_i32.is_some(), ship_class_col_i64.is_some());
-        if let Some(col) = &ship_class_col_i32 {
-            println!("DEBUG light_analyze_data: first 5 ship class values (i32): {:?}", col.slice(0, 5));
-        }
-        if let Some(col) = &ship_class_col_i64 {
-            println!("DEBUG light_analyze_data: first 5 ship class values (i64): {:?}", col.slice(0, 5));
-        }
         
         let data_manager = self.data_manager.lock().await;
         

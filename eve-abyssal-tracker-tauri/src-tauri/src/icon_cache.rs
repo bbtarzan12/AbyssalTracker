@@ -61,6 +61,19 @@ impl IconCache {
             return Some(*type_id);
         }
         
+        // 정규화된 매칭 시도 (공백 정리, 대소문자 무시)
+        let normalized_search = cleaned_name.to_lowercase().replace(&[' ', '\t', '\n', '\r'][..], " ");
+        let normalized_search = normalized_search.split_whitespace().collect::<Vec<_>>().join(" ");
+        
+        for (cached_name, type_id) in &self.type_id_cache {
+            let normalized_cached = cached_name.to_lowercase().replace(&[' ', '\t', '\n', '\r'][..], " ");
+            let normalized_cached = normalized_cached.split_whitespace().collect::<Vec<_>>().join(" ");
+            
+            if normalized_cached == normalized_search {
+                return Some(*type_id);
+            }
+        }
+        
         None
     }
 

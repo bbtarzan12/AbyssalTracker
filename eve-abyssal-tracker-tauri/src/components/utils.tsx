@@ -164,7 +164,9 @@ export const ItemIcon: React.FC<ItemIconProps> = ({ typeId, itemName, size = 32,
         
         // typeId가 없으면 itemName으로 조회
         if (!resolvedTypeId) {
-          const fetchedTypeId = await getItemTypeId(itemName);
+          // * 제거하고 깨끗한 아이템 이름으로 조회
+          const cleanItemName = itemName.replace('*', '').trim();
+          const fetchedTypeId = await getItemTypeId(cleanItemName);
           if (!fetchedTypeId) {
             setError(true);
             setLoading(false);
@@ -204,7 +206,17 @@ export const ItemIcon: React.FC<ItemIconProps> = ({ typeId, itemName, size = 32,
     return (
       <div 
         className={`item-icon-placeholder loading ${className}`}
-        style={{ width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f0f0f0', borderRadius: '4px' }}
+        style={{ 
+          width: size, 
+          height: size, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          backgroundColor: 'var(--tertiary-bg)', 
+          borderRadius: '4px',
+          border: '1px solid var(--border-primary)',
+          color: 'var(--text-accent)'
+        }}
       >
         ⏳
       </div>
@@ -215,7 +227,17 @@ export const ItemIcon: React.FC<ItemIconProps> = ({ typeId, itemName, size = 32,
     return (
       <div 
         className={`item-icon-placeholder error ${className}`}
-        style={{ width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#e0e0e0', borderRadius: '4px' }}
+        style={{ 
+          width: size, 
+          height: size, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          backgroundColor: 'var(--secondary-bg)', 
+          borderRadius: '4px',
+          border: '1px solid var(--border-primary)',
+          color: 'var(--text-muted)'
+        }}
         title={itemName}
       >
         📦

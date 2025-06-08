@@ -15,6 +15,8 @@
   z-index: 9999;
   backdrop-filter: blur(20px);
   animation: fadeIn 0.3s ease-out;
+  padding: 1rem; /* 양쪽 여백 확보 */
+  box-sizing: border-box;
 }
 
 .loading-modal {
@@ -24,10 +26,13 @@
   padding: var(--space-6);
   box-shadow: var(--shadow-xl);
   max-width: 500px;
-  width: 90%;
+  width: calc(90vw - 2rem); /* 패딩을 고려한 계산 */
   max-height: 90vh;
+  min-width: 320px; /* 최소 너비 보장 */
+  overflow-x: hidden; /* 가로 스크롤 방지 */
   overflow-y: auto;
   position: relative;
+  box-sizing: border-box; /* 패딩 포함 */
 }
 
 .loading-modal::before {
@@ -57,12 +62,17 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: var(--space-3);
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .loading-brand {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  min-width: 0;
+  flex-shrink: 1;
 }
 
 .brand-icon {
@@ -85,12 +95,17 @@
   font-size: 1rem;
   font-weight: 600;
   color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .progress-stats {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .progress-text {
@@ -115,6 +130,7 @@
 
 .progress-container {
   width: 100%;
+  box-sizing: border-box;
 }
 
 .progress-track {
@@ -160,6 +176,10 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden; /* 내용이 넘치면 숨김 */
 }
 
 .current-step-icon {
@@ -185,6 +205,8 @@
 
 .current-step-info {
   flex: 1;
+  min-width: 0; /* flex 아이템의 최소 너비를 0으로 설정하여 축소 허용 */
+  overflow: hidden;
 }
 
 .current-step-name {
@@ -192,12 +214,18 @@
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: var(--space-1);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 .current-step-message {
   color: var(--text-accent);
   font-size: 0.8rem;
   line-height: 1.4;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 /* Compact Steps List */
@@ -205,6 +233,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .step-item {
@@ -215,6 +245,10 @@
   border-radius: var(--radius-md);
   transition: all var(--transition-normal);
   border: 1px solid transparent;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .step-item.loading {
@@ -285,6 +319,7 @@
 .step-content {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
 }
 
 .step-name {
@@ -292,6 +327,9 @@
   color: var(--text-primary);
   font-size: 0.9rem;
   margin-bottom: var(--space-1);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 .step-progress {
