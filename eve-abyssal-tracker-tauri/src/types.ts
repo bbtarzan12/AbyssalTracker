@@ -40,4 +40,10 @@ export interface AbyssalData {
   daily_stats: DailyStats;
   overall_stats: OverallStats;
   item_buy_price_cache: { [key: string]: number };
+}
+
+export interface LocationInfo {
+  current_system: string | null;
+  previous_system: string | null;
+  last_updated: string | null;
 } 
