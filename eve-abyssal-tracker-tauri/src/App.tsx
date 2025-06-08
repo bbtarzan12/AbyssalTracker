@@ -41,7 +41,7 @@ function App() {
   // 업데이트 관련 상태
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
   const [latestVersion, setLatestVersion] = useState("");
-  const [currentVersion] = useState("1.0.22");
+  const [currentVersion, setCurrentVersion] = useState("");
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [isDownloadingUpdate, setIsDownloadingUpdate] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
@@ -325,6 +325,18 @@ function App() {
       }));
     });
 
+    // 현재 버전 가져오기
+    const loadCurrentVersion = async () => {
+      try {
+        const version = await invoke("get_current_version") as string;
+        setCurrentVersion(version);
+        console.log('[INFO] Current version loaded:', version);
+      } catch (error) {
+        console.error("Failed to get current version:", error);
+        setCurrentVersion("Unknown");
+      }
+    };
+
     // 설정 확인 함수
     const checkInitialConfig = async () => {
       try {
@@ -354,10 +366,13 @@ function App() {
   // 앱 초기화 및 데이터 로딩 처리
     const initializeApp = async () => {
       try {
-        // 1. 먼저 설정 확인
+        // 1. 먼저 현재 버전 로드
+        await loadCurrentVersion();
+        
+        // 2. 설정 확인
         await checkInitialConfig();
         
-        // 2. 설정이 완료된 경우에만 백그라운드에서 업데이트 체크
+        // 3. 설정이 완료된 경우에만 백그라운드에서 업데이트 체크
         if (!needsInitialSetup && !checkingUpdate) {
           setCheckingUpdate(true);
           invoke("check_for_update_command")

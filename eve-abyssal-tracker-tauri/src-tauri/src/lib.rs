@@ -372,6 +372,11 @@ async fn reload_icon_cache(app_handle: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
+async fn get_current_version(app_handle: AppHandle) -> Result<String, String> {
+    Ok(app_handle.package_info().version.to_string())
+}
+
+#[tauri::command]
 async fn check_for_update_command(app_handle: AppHandle) -> Result<serde_json::Value, String> {
     let current_version = app_handle.package_info().version.to_string();
     
@@ -961,6 +966,7 @@ pub fn run() {
             get_icon_url,
             get_best_image_url,
             reload_icon_cache,
+            get_current_version,
             detect_eve_log_path,
             get_csv_data_path,
             export_daily_analysis,
