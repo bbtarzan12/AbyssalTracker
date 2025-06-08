@@ -3,6 +3,7 @@ import { Dispatch, SetStateAction } from 'react';
 import './Settings.css';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { invoke } from "@tauri-apps/api/core";
+import { LocationInfo } from '../types';
 
 interface GeneralConfig {
   log_path: string;
@@ -21,12 +22,12 @@ interface AppConfig {
 }
 
 interface SettingsProps {
-  logMonitorRunning: boolean;
-  setLogMonitorRunning: Dispatch<SetStateAction<boolean>>;
+  abyssalWindowEnabled: boolean;
+  setAbyssalWindowEnabled: Dispatch<SetStateAction<boolean>>;
   triggerPopup: (title: string, message: string, type?: "info" | "warning" | "error") => void;
 }
 
-const Settings: React.FC<SettingsProps> = ({ logMonitorRunning, setLogMonitorRunning, triggerPopup }) => {
+const Settings: React.FC<SettingsProps> = ({ abyssalWindowEnabled, setAbyssalWindowEnabled, triggerPopup }) => {
   const [config, setConfig] = useState<AppConfig>({
     general: {
       log_path: '',
@@ -41,6 +42,18 @@ const Settings: React.FC<SettingsProps> = ({ logMonitorRunning, setLogMonitorRun
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const [locationInfo, setLocationInfo] = useState<LocationInfo>({
+    current_system: null,
+    previous_system: null,
+    last_updated: null,
+  });
+  const [logFileInfo, setLogFileInfo] = useState<{
+    file_name: string;
+    full_path: string;
+    file_size: number;
+    modified_time: string;
+    monitoring: boolean;
+  } | null>(null);
 
 
   const loadConfig = useCallback(async () => {
@@ -56,6 +69,36 @@ const Settings: React.FC<SettingsProps> = ({ logMonitorRunning, setLogMonitorRun
       setLoading(false);
     }
   }, [triggerPopup]);
+
+  const loadLocationInfo = useCallback(async () => {
+    try {
+      const result = await invoke("get_location_info_command") as LocationInfo;
+      setLocationInfo(result);
+    } catch (e) {
+      console.error("Failed to load location info:", e);
+      // 위치 정보 로딩 실패는 크리티컬하지 않으므로 조용히 처리
+    }
+  }, []);
+
+  const loadAbyssalWindowState = useCallback(async () => {
+    try {
+      const enabled = await invoke("get_abyssal_window_enabled") as boolean;
+      setAbyssalWindowEnabled(enabled);
+    } catch (e) {
+      console.error("Failed to load abyssal window state:", e);
+      // 실패 시 기본값 유지
+    }
+  }, []);
+
+  const loadLogFileInfo = useCallback(async () => {
+    try {
+      const result = await invoke("get_current_log_file_info") as { file_name: string; full_path: string; file_size: number; modified_time: string; monitoring: boolean } | null;
+      setLogFileInfo(result);
+    } catch (e) {
+      console.error("Failed to load log file info:", e);
+      // 로그 파일 정보 로딩 실패는 조용히 처리
+    }
+  }, []);
 
   const saveConfig = async () => {
     setSaving(true);
@@ -83,25 +126,21 @@ const Settings: React.FC<SettingsProps> = ({ logMonitorRunning, setLogMonitorRun
     }
   };
 
-  const handleStartMonitor = async () => {
+  const handleToggleAbyssalWindow = async () => {
+    const newState = !abyssalWindowEnabled;
     try {
-      await invoke("start_log_monitor_command");
-      setLogMonitorRunning(true);
-      triggerPopup("모니터링 시작", "로그 모니터링이 성공적으로 시작되었습니다.", "info");
+      await invoke("set_abyssal_window_enabled", { enabled: newState });
+      setAbyssalWindowEnabled(newState);
+      triggerPopup(
+        newState ? "어비셜 창 활성화" : "어비셜 창 비활성화", 
+        newState 
+          ? "어비셜 런 완료 시 결과 창이 자동으로 표시됩니다." 
+          : "어비셜 런 완료 시 결과 창이 더 이상 표시되지 않습니다.", 
+        "info"
+      );
     } catch (e) {
-      console.error("Failed to start log monitor:", e);
-      triggerPopup("모니터링 시작 실패", `로그 모니터링 시작에 실패했습니다: ${e}`, "error");
-    }
-  };
-
-  const handleStopMonitor = async () => {
-    try {
-      await invoke("stop_log_monitor_command");
-      setLogMonitorRunning(false);
-      triggerPopup("모니터링 중지", "로그 모니터링이 중지되었습니다.", "info");
-    } catch (e) {
-      console.error("Failed to stop log monitor:", e);
-      triggerPopup("모니터링 중지 실패", `로그 모니터링 중지에 실패했습니다: ${e}`, "error");
+      console.error("Failed to toggle abyssal window:", e);
+      triggerPopup("설정 변경 실패", `어비셜 창 설정 변경에 실패했습니다: ${e}`, "error");
     }
   };
 
@@ -115,13 +154,41 @@ const Settings: React.FC<SettingsProps> = ({ logMonitorRunning, setLogMonitorRun
     }
   };
 
+  const handleOpenLogFile = async () => {
+    if (!logFileInfo) {
+      triggerPopup("로그 파일 없음", "현재 모니터링 중인 로그 파일이 없습니다.", "warning");
+      return;
+    }
+    
+    try {
+      await invoke("open_file_in_system", { filePath: logFileInfo.full_path });
+      triggerPopup("파일 열기", "로그 파일이 시스템 기본 프로그램으로 열렸습니다.", "info");
+    } catch (e) {
+      console.error("Failed to open log file:", e);
+      triggerPopup("파일 열기 실패", `로그 파일 열기에 실패했습니다: ${e}`, "error");
+    }
+  };
+
 
 
 
 
   useEffect(() => {
     loadConfig();
-  }, [loadConfig]);
+    loadLocationInfo();
+    loadAbyssalWindowState();
+    loadLogFileInfo();
+    
+    // 로그 모니터링은 항상 실행되므로 주기적으로 위치 정보와 로그 파일 정보 업데이트
+    const intervalId = setInterval(() => {
+      loadLocationInfo();
+      loadLogFileInfo();
+    }, 5000); // 5초마다 업데이트
+    
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [loadConfig, loadLocationInfo, loadAbyssalWindowState, loadLogFileInfo]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -134,6 +201,36 @@ const Settings: React.FC<SettingsProps> = ({ logMonitorRunning, setLogMonitorRun
     }));
     setIsDirty(true);
   };
+
+  const formatLastUpdated = (lastUpdated: string | null): string => {
+    if (!lastUpdated) return '정보 없음';
+    try {
+      const date = new Date(lastUpdated);
+      // 한국시간(KST = UTC+9)으로 변환
+      const kstDate = new Date(date.getTime() + (9 * 60 * 60 * 1000));
+      return kstDate.toLocaleString('ko-KR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZone: 'Asia/Seoul'
+      });
+    } catch {
+      return '정보 없음';
+    }
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+
 
 
 
@@ -217,7 +314,7 @@ const Settings: React.FC<SettingsProps> = ({ logMonitorRunning, setLogMonitorRun
             <div className="section-icon">📡</div>
             <div className="section-info">
               <h2 className="section-title">📡 모니터링 제어</h2>
-              <p className="section-description">로그 파일 모니터링 및 테스트 관리</p>
+              <p className="section-description">로그 파일은 항상 모니터링되며, 어비셜 결과 창 표시를 제어할 수 있습니다</p>
             </div>
           </div>
 
@@ -225,47 +322,127 @@ const Settings: React.FC<SettingsProps> = ({ logMonitorRunning, setLogMonitorRun
             <div className="control-card">
               <div className="card-header">
                 <div className="card-icon">🎯</div>
-                <div className="card-title">로그 모니터</div>
+                <div className="card-title">어비셜 결과 창</div>
               </div>
               <div className="card-content">
                 <p className="card-description">
-                  {logMonitorRunning 
-                    ? '🟢 EVE 로그 파일에서 어비셜 런을 능동적으로 모니터링 중입니다' 
-                    : '🔴 로그 모니터링이 현재 중지된 상태입니다'
+                  {abyssalWindowEnabled 
+                    ? '🟢 어비셜 런 완료 시 결과 창이 자동으로 표시됩니다' 
+                    : '🔴 어비셜 런 완료 시 결과 창이 표시되지 않습니다'
                   }
                 </p>
                 <button
-                  onClick={logMonitorRunning ? handleStopMonitor : handleStartMonitor}
-                  className={`control-button ${logMonitorRunning ? 'danger' : 'primary'}`}
+                  onClick={handleToggleAbyssalWindow}
+                  className={`control-button ${abyssalWindowEnabled ? 'danger' : 'primary'}`}
                 >
                   <span className="button-icon">
-                    {logMonitorRunning ? '⏹️' : '▶️'}
+                    {abyssalWindowEnabled ? '🔇' : '🔊'}
                   </span>
                   <span className="button-text">
-                    {logMonitorRunning ? '모니터링 중지' : '모니터링 시작'}
+                    {abyssalWindowEnabled ? '결과 창 비활성화' : '결과 창 활성화'}
                   </span>
+                </button>
+                <p className="card-description">
+                  🧪 테스트 실행: 어비셜 결과 창이 정상적으로 표시되는지 확인할 수 있습니다
+                </p>
+                <button
+                  onClick={handleTestWindow}
+                  className="control-button secondary"
+                >
+                  <span className="button-icon">🧪</span>
+                  <span className="button-text">테스트 실행</span>
                 </button>
               </div>
             </div>
 
             <div className="control-card">
               <div className="card-header">
-                <div className="card-icon">🧪</div>
-                <div className="card-title">어비셜 결과 창 테스트</div>
+                <div className="card-icon">📍</div>
+                <div className="card-title">현재 위치 정보</div>
               </div>
               <div className="card-content">
-                <p className="card-description">
-                  어비셜 결과 창이 정상적으로 표시되는지 테스트합니다
-                </p>
+                <div className="location-info">
+                  <div className="location-item">
+                    <span className="location-label">🎯 현재 성계:</span>
+                    <span className="location-value">
+                      {locationInfo.current_system || '정보 없음'}
+                    </span>
+                  </div>
+                  <div className="location-item">
+                    <span className="location-label">↩️ 이전 성계:</span>
+                    <span className="location-value">
+                      {locationInfo.previous_system || '정보 없음'}
+                    </span>
+                  </div>
+                  <div className="location-item">
+                    <span className="location-label">🕐 마지막 업데이트:</span>
+                    <span className="location-value location-time">
+                      {formatLastUpdated(locationInfo.last_updated)}
+                    </span>
+                  </div>
+                </div>
                 <button
-                  onClick={handleTestWindow}
-                  className="control-button secondary"
+                  onClick={loadLocationInfo}
+                  className="control-button secondary small"
                 >
-                  <span className="button-icon">🚀</span>
-                  <span className="button-text">테스트 실행</span>
+                  <span className="button-icon">🔄</span>
+                  <span className="button-text">새로고침</span>
                 </button>
               </div>
             </div>
+
+            <div className="control-card">
+              <div className="card-header">
+                <div className="card-icon">📄</div>
+                <div className="card-title">모니터링 중인 로그 파일</div>
+              </div>
+              <div className="card-content">
+                {logFileInfo ? (
+                  <div className="location-info">
+                    <div className="location-item">
+                      <span className="location-label">📁 파일명:</span>
+                      <span className="location-value" 
+                            onClick={handleOpenLogFile} 
+                            style={{ cursor: 'pointer', textDecoration: 'underline', color: '#4a9eff' }}
+                            title="클릭하여 파일 열기">
+                        {logFileInfo.file_name}
+                      </span>
+                    </div>
+                    <div className="location-item">
+                      <span className="location-label">📊 파일 크기:</span>
+                      <span className="location-value">
+                        {formatFileSize(logFileInfo.file_size)}
+                      </span>
+                    </div>
+                    <div className="location-item">
+                      <span className="location-label">🕐 수정 시간:</span>
+                      <span className="location-value location-time">
+                        {logFileInfo.modified_time}
+                      </span>
+                    </div>
+                    <div className="location-item">
+                      <span className="location-label">📡 모니터링 상태:</span>
+                      <span className="location-value" style={{ color: logFileInfo.monitoring ? '#4caf50' : '#f44336' }}>
+                        {logFileInfo.monitoring ? '🟢 활성' : '🔴 비활성'}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="card-description">
+                    🔍 현재 모니터링 중인 로그 파일이 없습니다
+                  </p>
+                )}
+                <button
+                  onClick={loadLogFileInfo}
+                  className="control-button secondary small"
+                >
+                  <span className="button-icon">🔄</span>
+                  <span className="button-text">새로고침</span>
+                </button>
+              </div>
+            </div>
+
+
           </div>
         </div>
 
