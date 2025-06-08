@@ -2,14 +2,32 @@
   display: flex;
   align-items: center;
   height: 32px;
-  background: linear-gradient(135deg, var(--tertiary-bg), var(--secondary-bg));
-  border-bottom: 1px solid var(--border-primary);
+  background: 
+    radial-gradient(circle at 50% 100%, rgba(255, 140, 0, 0.08) 0%, transparent 70%),
+    linear-gradient(135deg, var(--tertiary-bg), var(--secondary-bg));
+  border-bottom: 1px solid rgba(255, 140, 0, 0.15);
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 1000;
   user-select: none;
+  backdrop-filter: blur(10px);
+}
+
+.titlebar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(255, 140, 0, 0.3) 20%, 
+    rgba(255, 165, 0, 0.5) 50%, 
+    rgba(255, 140, 0, 0.3) 80%, 
+    transparent 100%);
 }
 
 
