@@ -521,3 +521,55 @@
   font-weight: 500;
 }
 
+/* Location Info Styles */
+.location-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.location-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  background: var(--primary-bg);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.location-item:hover {
+  background: var(--secondary-bg);
+  border-color: var(--border-secondary);
+}
+
+.location-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.location-value {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-align: right;
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+}
+
+.location-time {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.control-button.small {
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.8rem;
+  min-height: auto;
+}
+
+
+
