@@ -512,7 +512,7 @@ async fn get_latest_github_release() -> Result<(String, String), String> {
     
     // 다운로드 URL 생성 (GitHub 릴리즈 패턴 사용)
     let download_url = format!(
-        "https://github.com/bbtarzan12/AbyssalTracker/releases/download/v{}/EVE_Abyssal_Tracker_{}_x64-setup.exe",
+        "https://github.com/bbtarzan12/AbyssalTracker/releases/download/v{}/EVE.Abyssal.Tracker_{}_x64-setup.exe",
         version, version
     );
     
@@ -559,7 +559,7 @@ async fn download_and_install_update_command(app_handle: AppHandle) -> Result<St
     
     // 임시 폴더에 설치 파일 다운로드
     let temp_dir = std::env::temp_dir();
-    let installer_path = temp_dir.join(format!("EVE_Abyssal_Tracker_{}_x64-setup.exe", latest_version));
+    let installer_path = temp_dir.join(format!("EVE.Abyssal.Tracker_{}_x64-setup.exe", latest_version));
     
     // 다운로드
     let client = reqwest::Client::new();
