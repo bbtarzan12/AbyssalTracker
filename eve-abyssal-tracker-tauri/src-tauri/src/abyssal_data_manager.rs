@@ -40,7 +40,6 @@ impl AbyssalDataManager {
                 let data_dir = app_data_dir.join("data");
                 // 디렉토리가 없으면 생성
                 if let Err(e) = std::fs::create_dir_all(&data_dir) {
-                    eprintln!("Warning: Failed to create app data directory: {}", e);
                     // 실패 시 현재 디렉토리의 data 폴더 사용
                     PathBuf::from("data")
                 } else {
@@ -48,7 +47,7 @@ impl AbyssalDataManager {
                 }
             },
             Err(e) => {
-                eprintln!("Warning: Failed to get app data directory: {}, using local data directory", e);
+                // 실패 시 현재 디렉토리의 data 폴더 사용
                 PathBuf::from("data")
             }
         };
@@ -94,23 +93,6 @@ impl AbyssalDataManager {
                         .finish()
                     {
                         Ok(mut df) => {
-                            println!("File: {}, has_ship_class: {}, df.column('함급'): {:?}", 
-                                    file_name, has_ship_class, df.column("함급").map(|col| col.dtype()));
-                            
-                            // 함급 컬럼이 없으면 기본값 1로 추가 (기존 CSV와의 호환성)
-                            if !has_ship_class || df.column("함급").is_err() {
-                                println!("Adding default ship_class column to {}", file_name);
-                                df = df.lazy().with_column(lit(1i32).alias("함급")).collect()
-                                    .map_err(|e| format!("Failed to add ship_class column: {}", e))?;
-                            } else {
-                                // 함급 컬럼이 있는 경우 값들을 출력해보기
-                                if let Ok(ship_class_col) = df.column("함급") {
-                                    println!("Ship class column data type: {:?}", ship_class_col.dtype());
-                                    println!("First 5 ship class values: {:?}", ship_class_col.slice(0, 5));
-                                }
-                            }
-                            
-                            // 컬럼 순서를 일관되게 맞추기
                             df = df.select([
                                 "시작시각(KST)",
                                 "종료시각(KST)",
@@ -215,7 +197,6 @@ impl AbyssalDataManager {
 
             // 기존 파일에 함급 컬럼이 없으면 기본값 1로 추가
             if !has_ship_class || existing_df.column("함급").is_err() {
-                println!("Adding default ship_class column to existing file");
                 existing_df = existing_df.lazy().with_column(lit(1i32).alias("함급")).collect()
                     .map_err(|e| format!("Failed to add ship_class column to existing data: {}", e))?;
             }
