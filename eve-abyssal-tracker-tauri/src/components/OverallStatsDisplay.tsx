@@ -1,5 +1,14 @@
 import React, { useMemo } from 'react';
-import { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area } from 'recharts';
+import {
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  ComposedChart,
+  Line,
+} from 'recharts';
 import './OverallStatsDisplay.css';
 import type { RunData, OverallStats } from "../types";
 
@@ -36,10 +45,9 @@ const OverallStatsDisplay: React.FC<OverallStatsDisplayProps> = ({ df, overall_s
   // Calculate derived statistics
   const totalRuns = df.length;
   const totalProfit = df.reduce((sum, run) => sum + run['실수익'], 0);
-  const bestRun = df.reduce((best, run) => run['실수익'] > best['실수익'] ? run : best, df[0] || {});
-  // const worstRun = df.reduce((worst, run) => run['실수익'] < worst['실수익'] ? run : worst, df[0] || {});
-
-
+  const totalPlayTimeMinutes = df.reduce((sum, run) => sum + run['런 소요(분)'], 0);
+  const totalPlayHours = Math.floor(totalPlayTimeMinutes / 60);
+  const totalPlayRemainingMinutes = Math.round(totalPlayTimeMinutes % 60);
 
   // Daily trend data for chart
   const dailyTrendData = useMemo(() => {
@@ -65,130 +73,214 @@ const OverallStatsDisplay: React.FC<OverallStatsDisplayProps> = ({ df, overall_s
 
   return (
     <div className="overall-analytics">
-      {/* Key Metrics Overview */}
-      <div className="analytics-grid">
-        <div className="metric-card highlight">
+      {/* Top Section: Key Metrics & Daily Trend Chart */}
+      <div className="top-section">
+        {/* Key Metrics Overview */}
+        <div className="metric-card highlight combined-card">
           <div className="metric-header">
-            <div className="metric-title">🚀 총 런 수</div>
-            <div className="metric-icon">🚀</div>
+            <div className="metric-title">📊 전체 현황</div>
           </div>
-          <div className="metric-value">{totalRuns.toLocaleString()}</div>
-          <div className="metric-change positive">
-            <span>📈</span>
-            전체 데이터셋
+          <div className="combined-metrics">
+            <div className="combined-metric">
+              <div className="combined-label">총 런 수</div>
+              <div className="combined-value">{totalRuns.toLocaleString()}</div>
+            </div>
+            <div className="combined-metric">
+              <div className="combined-label">총 수익</div>
+              <div className="combined-value">{formatISK(totalProfit)}</div>
+            </div>
+            <div className="combined-metric">
+              <div className="combined-label">전체 플레이시간</div>
+              <div className="combined-value">
+                {totalPlayHours > 0 ? `${totalPlayHours}h ` : ''}{totalPlayRemainingMinutes}m
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="metric-card highlight">
-          <div className="metric-header">
-            <div className="metric-title">💰 총 수익</div>
-            <div className="metric-icon">💰</div>
+        {/* Daily Profit Trend Chart */}
+        <div className="chart-container">
+          <div className="chart-header">
+            <div className="chart-header-left"></div>
+            <h3 className="chart-title">📈 일별 수익 트렌드</h3>
+            <div className="chart-legend">
+              <div className="legend-item">
+                <div className="legend-color" style={{ backgroundColor: '#50fa7b' }}></div>
+                <span className="legend-text">💰 총 수익</span>
+              </div>
+              <div className="legend-item">
+                <div className="legend-color" style={{ backgroundColor: '#bd93f9' }}></div>
+                <span className="legend-text">📈 평균 수익</span>
+              </div>
+            </div>
           </div>
-          <div className="metric-value">{formatISK(totalProfit)}</div>
-          <div className="metric-change positive">
-            <span>💎</span>
-            누적 수익
-          </div>
-        </div>
-
-        <div className="metric-card highlight">
-          <div className="metric-header">
-            <div className="metric-title">⚡ 평균 시간 당 수익</div>
-            <div className="metric-icon">⚡</div>
-          </div>
-          <div className="metric-value">{formatISK(overall_stats.avg_iskph)}/h</div>
-          <div className="metric-change neutral">
-            <span>⚖️</span>
-            평균 {(overall_stats.avg_time).toFixed(1)}분
-          </div>
-        </div>
-
-        <div className="metric-card highlight">
-          <div className="metric-header">
-            <div className="metric-title">🏆 최고 성과</div>
-            <div className="metric-icon">🏆</div>
-          </div>
-          <div className="metric-value">{formatISK(bestRun['실수익'])}</div>
-          <div className="metric-change positive">
-            <span>🎯</span>
-            단일 런 기록
+          <div className="chart-content">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={dailyTrendData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                <defs>
+                  <linearGradient id="totalProfitGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#50fa7b" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="#50fa7b" stopOpacity={0.1}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-primary)" />
+                <XAxis 
+                  dataKey="date" 
+                  stroke="var(--text-muted)" 
+                  tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
+                  tickFormatter={(value) => value.slice(5)} // MM-DD 형식으로 표시
+                />
+                <YAxis 
+                  yAxisId="left"
+                  stroke="#50fa7b" 
+                  tick={{ fill: '#50fa7b', fontSize: 11 }}
+                  tickFormatter={(value) => formatISK(value)}
+                  label={{ value: '총 수익', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#50fa7b' } }}
+                />
+                <YAxis 
+                  yAxisId="right"
+                  orientation="right"
+                  stroke="#bd93f9" 
+                  tick={{ fill: '#bd93f9', fontSize: 11 }}
+                  tickFormatter={(value) => formatISK(value)}
+                  label={{ value: '평균 수익', angle: 90, position: 'insideRight', style: { textAnchor: 'middle', fill: '#bd93f9' } }}
+                />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: 'var(--surface-bg)',
+                    border: '1px solid var(--border-primary)',
+                    borderRadius: 'var(--radius-md)',
+                    color: 'var(--text-primary)'
+                  }}
+                  formatter={(value, _, props) => [
+                    `${formatISK(value as number)}`,
+                    props.dataKey === 'totalProfit' ? '💰 총 수익' : '📈 평균 수익'
+                  ]}
+                  labelFormatter={(label) => `📅 날짜: ${label}`}
+                />
+                <Area 
+                  yAxisId="left"
+                  type="monotone" 
+                  dataKey="totalProfit" 
+                  stroke="#50fa7b" 
+                  fill="url(#totalProfitGradient)"
+                  strokeWidth={2}
+                  name="💰 총 수익"
+                />
+                <Line 
+                  yAxisId="right"
+                  type="monotone" 
+                  dataKey="avgProfit" 
+                  stroke="#bd93f9" 
+                  strokeWidth={3}
+                  dot={{ fill: '#bd93f9', strokeWidth: 2, r: 5 }}
+                  activeDot={{ r: 7, stroke: '#bd93f9', strokeWidth: 2, fill: '#ffffff' }}
+                  name="📈 평균 수익"
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </div>
 
-      {/* Daily Profit Trend Chart */}
-      <div className="chart-container">
-        <div className="chart-header">
-          <h3 className="chart-title">📈 일별 수익 트렌드</h3>
-          <p className="chart-subtitle">날짜별 총 수익 및 평균 수익 변화</p>
+      {/* Abyssal Weather Statistics Table */}
+      <div className="weather-stats-container">
+        <div className="metric-header">
+          <div className="metric-title">🌪️ 어비셜 날씨별 통계</div>
         </div>
-        <ResponsiveContainer width="100%" height={350}>
-          <ComposedChart data={dailyTrendData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-            <defs>
-              <linearGradient id="totalProfitGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#50fa7b" stopOpacity={0.4}/>
-                <stop offset="95%" stopColor="#50fa7b" stopOpacity={0.1}/>
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-primary)" />
-            <XAxis 
-              dataKey="date" 
-              stroke="var(--text-muted)" 
-              tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
-              tickFormatter={(value) => value.slice(5)} // MM-DD 형식으로 표시
-            />
-            <YAxis 
-              yAxisId="left"
-              stroke="#50fa7b" 
-              tick={{ fill: '#50fa7b', fontSize: 11 }}
-              tickFormatter={(value) => formatISK(value)}
-              label={{ value: '총 수익', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#50fa7b' } }}
-            />
-            <YAxis 
-              yAxisId="right"
-              orientation="right"
-              stroke="#bd93f9" 
-              tick={{ fill: '#bd93f9', fontSize: 11 }}
-              tickFormatter={(value) => formatISK(value)}
-              label={{ value: '평균 수익', angle: 90, position: 'insideRight', style: { textAnchor: 'middle', fill: '#bd93f9' } }}
-            />
-            <Tooltip 
-              contentStyle={{
-                backgroundColor: 'var(--surface-bg)',
-                border: '1px solid var(--border-primary)',
-                borderRadius: 'var(--radius-md)',
-                color: 'var(--text-primary)'
-              }}
-              formatter={(value, _, props) => [
-                `${formatISK(value as number)}`,
-                props.dataKey === 'totalProfit' ? '💰 총 수익' : '📈 평균 수익'
-              ]}
-              labelFormatter={(label) => `📅 날짜: ${label}`}
-            />
-            <Legend 
-              wrapperStyle={{ paddingTop: '20px' }}
-            />
-            <Area 
-              yAxisId="left"
-              type="monotone" 
-              dataKey="totalProfit" 
-              stroke="#50fa7b" 
-              fill="url(#totalProfitGradient)"
-              strokeWidth={2}
-              name="💰 총 수익"
-            />
-            <Line 
-              yAxisId="right"
-              type="monotone" 
-              dataKey="avgProfit" 
-              stroke="#bd93f9" 
-              strokeWidth={3}
-              dot={{ fill: '#bd93f9', strokeWidth: 2, r: 5 }}
-              activeDot={{ r: 7, stroke: '#bd93f9', strokeWidth: 2, fill: '#ffffff' }}
-              name="📈 평균 수익"
-            />
-          </ComposedChart>
-        </ResponsiveContainer>
+        
+        {overall_stats.tier_weather_stats && overall_stats.tier_weather_stats.length > 0 ? (
+          <div className="weather-stats-table-container">
+            <table className="weather-stats-table">
+              <thead>
+                <tr>
+                  <th>티어</th>
+                  <th>날씨</th>
+                  <th>런 수</th>
+                  <th>총 플레이 시간</th>
+                  <th>총 수익</th>
+                  <th>총 입장료</th>
+                  <th>평균 수익</th>
+                  <th>평균 시간당 수익</th>
+                  <th>평균 진행 시간</th>
+                  <th>수익성</th>
+                </tr>
+              </thead>
+              <tbody>
+                {overall_stats.tier_weather_stats
+                  .sort((a, b) => {
+                    // 티어별로 먼저 정렬 (T1, T2, T3, T4, T5 순)
+                    const tierOrder = ['T1', 'T2', 'T3', 'T4', 'T5'];
+                    const aTierIndex = tierOrder.indexOf(a.tier);
+                    const bTierIndex = tierOrder.indexOf(b.tier);
+                    if (aTierIndex !== bTierIndex) {
+                      return aTierIndex - bTierIndex;
+                    }
+                    // 같은 티어 내에서는 날씨별로 정렬
+                    return a.weather.localeCompare(b.weather);
+                  })
+                  .map((stat, index) => {
+                    const totalProfit = stat.avg_isk * stat.runs_count;
+                    const totalPlayTime = stat.avg_time * stat.runs_count;
+                    const totalPlayHours = Math.floor(totalPlayTime / 60);
+                    const totalPlayMinutes = Math.round(totalPlayTime % 60);
+                    
+                    // 수익성 퍼센트 계산
+                    const profitabilityPercent = stat.total_entry_cost > 0 ? (totalProfit / stat.total_entry_cost * 100) : 0;
+                    
+                    return (
+                      <tr key={index} className="weather-stats-row">
+                        <td className="tier-cell">
+                          <span className={`tier-badge tier-${stat.tier.toLowerCase()}`}>
+                            {stat.tier}
+                          </span>
+                        </td>
+                        <td className="weather-cell">
+                          <span className="weather-name">{stat.weather}</span>
+                        </td>
+                        <td className="runs-cell">
+                          <span className="runs-count">{stat.runs_count.toLocaleString()}</span>
+                        </td>
+                        <td className="time-cell">
+                          <span className="time-value">
+                            {totalPlayHours > 0 ? `${totalPlayHours}h ` : ''}{totalPlayMinutes}m
+                          </span>
+                        </td>
+                        <td className="total-profit-cell">
+                          <span className={`profit-value ${totalProfit >= 0 ? 'positive' : 'negative'}`}>
+                            {formatISK(totalProfit)}
+                          </span>
+                        </td>
+                        <td className="entry-cost-cell">
+                          <span className="entry-cost-value">{formatISK(stat.total_entry_cost)}</span>
+                        </td>
+                        <td className="avg-profit-cell">
+                          <span className={`profit-value ${stat.avg_isk >= 0 ? 'positive' : 'negative'}`}>
+                            {formatISK(stat.avg_isk)}
+                          </span>
+                        </td>
+                        <td className="iskph-cell">
+                          <span className="iskph-value">{formatISK(stat.avg_iskph)}/h</span>
+                        </td>
+                        <td className="time-cell">
+                          <span className="time-value">{stat.avg_time.toFixed(1)}분</span>
+                        </td>
+                        <td className="profitability-cell">
+                          <span className={`profitability-value ${profitabilityPercent >= 100 ? 'positive' : profitabilityPercent >= 50 ? 'neutral' : 'negative'}`}>
+                            {profitabilityPercent.toFixed(1)}%
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="no-weather-data">
+            <p>어비셜 날씨별 통계 데이터가 없습니다.</p>
+          </div>
+        )}
       </div>
     </div>
   );
