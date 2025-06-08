@@ -128,19 +128,19 @@ const InitialSetup: React.FC<InitialSetupProps> = ({ onSetupComplete }) => {
                 <span className="button-icon">📂</span>
                 폴더 선택
               </button>
-              {isAutoDetecting && (
-                <div className="auto-detect-status">
-                  <span className="status-icon">🔍</span>
-                  기본 EVE 로그 경로 자동 감지 중...
-                </div>
-              )}
-              {!isAutoDetecting && logPath && (
-                <div className="auto-detect-status success">
-                  <span className="status-icon">✅</span>
-                  EVE 로그 경로 자동 감지 완료
-                </div>
-              )}
             </div>
+            {isAutoDetecting && (
+              <div className="auto-detect-status">
+                <span className="status-icon">🔍</span>
+                기본 EVE 로그 경로 자동 감지 중...
+              </div>
+            )}
+            {!isAutoDetecting && logPath && (
+              <div className="auto-detect-status success">
+                <span className="status-icon">✅</span>
+                EVE 로그 경로 자동 감지 완료
+              </div>
+            )}
           </div>
 
           <div className="setup-section">

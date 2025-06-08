@@ -241,25 +241,27 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  margin-top: var(--space-2);
-  border-radius: var(--radius-sm);
-  font-size: 0.85rem;
+  padding: var(--space-3) var(--space-4);
+  margin-top: var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
   font-weight: 500;
   background: rgba(59, 130, 246, 0.1);
   color: var(--accent-bg);
   border: 1px solid rgba(59, 130, 246, 0.2);
   animation: fadeIn 0.3s ease-out;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
 }
 
 .auto-detect-status.success {
   background: rgba(16, 185, 129, 0.1);
   color: var(--success);
   border-color: rgba(16, 185, 129, 0.2);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.1);
 }
 
 .status-icon {
-  font-size: 1rem;
+  font-size: 1.1rem;
   flex-shrink: 0;
 }
 
