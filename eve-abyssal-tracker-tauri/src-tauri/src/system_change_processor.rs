@@ -5,6 +5,7 @@ use std::{
 };
 use chrono::{DateTime, Local, NaiveDateTime, Duration, TimeZone};
 use serde::{Serialize, Deserialize};
+use log::*;
 
 use crate::eve_log_processor::EveLogProcessor;
 
@@ -78,8 +79,8 @@ impl SystemChangeProcessor {
                 if self.abyssal_run_start.is_none() {
                     self.abyssal_run_start = Some(event_time_local);
                     self.abyssal_run_start_kst = Some(event_time_kst);
-                    println!("[START] Abyssal Deadspace entered at {} (KST)", 
-                        self.abyssal_run_start_kst.unwrap().format("%H:%M:%S"));
+                    info!("[START] Abyssal Deadspace entered at {} (KST)", 
+                        self.abyssal_run_start_kst.unwrap().format("%Y-%m-%d %H:%M:%S"));
                 }
             } else {
                 if let Some(start_time) = self.abyssal_run_start {
@@ -90,8 +91,8 @@ impl SystemChangeProcessor {
                     let secs = duration.num_seconds() % 60;
                     self.abyssal_run_count += 1;
                     
-                    println!("[END] Returned to normal space at {} (KST). Run duration: {}m {}s. Total runs: {}", 
-                        end_time_kst.format("%H:%M:%S"), mins, secs, self.abyssal_run_count);
+                    info!("[END] Returned to normal space at {} (KST). Run duration: {}m {}s. Total runs: {}", 
+                        end_time_kst.format("%Y-%m-%d %H:%M:%S"), mins, secs, self.abyssal_run_count);
                     
                     if let Some(ref callback) = self.on_abyssal_run_end {
                         callback(self.abyssal_run_start_kst.unwrap(), end_time_kst);
@@ -121,7 +122,7 @@ impl SystemChangeProcessor {
         }
         files_with_mtime.sort_by(|a, b| a.1.cmp(&b.1)); // 오래된 순으로 정렬 (Python과 동일)
         
-        println!("[INFO] Scanning {} past log files for runs...", files_with_mtime.len());
+        info!("[INFO] Scanning {} past log files for runs...", files_with_mtime.len());
         
         // 루프 밖에서 한 번만 language 가져오기
         let language = {
@@ -190,24 +191,24 @@ impl SystemChangeProcessor {
 
     pub fn print_past_runs(&self) {
         if !self.runs_by_date.is_empty() {
-            println!("[PAST RUNS]");
+            info!("[PAST RUNS]");
             let mut sorted_dates: Vec<_> = self.runs_by_date.keys().collect();
             sorted_dates.sort();
             
             for date in sorted_dates {
                 if let Some(runs) = self.runs_by_date.get(date) {
-                    println!("{}:", date);
+                    info!("{}:", date);
                     for run in runs {
                         let start_kst = run.start + Duration::hours(9);
                         let end_kst = run.end + Duration::hours(9);
                         let start_str = start_kst.format("%H:%M:%S");
                         let end_str = end_kst.format("%H:%M:%S");
-                        println!("  - {} ~ {} ({}) (KST)", start_str, end_str, run.duration_str);
+                        info!("  - {} ~ {} ({}) (KST)", start_str, end_str, run.duration_str);
                     }
                 }
             }
         } else {
-            println!("[PAST RUNS] None");
+            info!("[PAST RUNS] None");
         }
     }
 }

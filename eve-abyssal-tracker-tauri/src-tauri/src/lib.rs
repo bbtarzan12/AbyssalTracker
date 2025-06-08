@@ -6,6 +6,8 @@ use polars::io::json::JsonWriter;
 use chrono::{DateTime, Local};
 use serde_json;
 use tokio::fs;
+use tauri_plugin_log::{Target, TargetKind};
+use log::*;
 
 mod config_manager;
 use config_manager::ConfigManager;
@@ -86,7 +88,7 @@ pub async fn restart_log_monitor_if_running(app_handle: &AppHandle) -> Result<()
     };
     
     if is_monitoring {
-        println!("[INFO] Configuration changed, restarting LogMonitor...");
+        info!("Configuration changed, restarting LogMonitor...");
         
         // 기존 모니터링 중지
         log_monitor.lock().await.stop().await;
@@ -107,7 +109,7 @@ pub async fn restart_log_monitor_if_running(app_handle: &AppHandle) -> Result<()
         
         // 상태 이벤트 발송
         let _ = app_handle.emit("log_monitor_status", serde_json::json!({ "status": "restarted" }));
-        println!("[INFO] LogMonitor restarted successfully");
+        info!("LogMonitor restarted successfully");
     }
     
     Ok(())
@@ -193,12 +195,12 @@ async fn save_abyssal_result(
     
     match &result {
         Ok(_) => {
-            println!("[INFO] Abyssal result saved successfully");
+            info!("Abyssal result saved successfully");
             // 새 런이 저장되면 프론트엔드에 이벤트 발생
             let _ = app_handle.emit("abyssal_run_completed", ());
-            println!("[INFO] Emitted abyssal_run_completed event");
+                         info!("Emitted abyssal_run_completed event");
         },
-        Err(e) => println!("[ERROR] Failed to save abyssal result: {}", e),
+                 Err(e) => warn!("Failed to save abyssal result: {}", e),
     }
     
     result
@@ -235,7 +237,7 @@ async fn open_abyssal_result_window(
     // 윈도우 포커스
     let _ = window.set_focus();
     
-    println!("[INFO] Abyssal result window opened successfully");
+    info!("Abyssal result window opened successfully");
     Ok(())
 }
 
@@ -276,7 +278,7 @@ async fn test_abyssal_window(app_handle: AppHandle) -> Result<(), String> {
         end_time_str,
         duration_str
     ).await {
-        println!("[ERROR] Failed to open test window: {}", e);
+        warn!("Failed to open test window: {}", e);
         return Err(e);
     }
     
@@ -296,8 +298,8 @@ async fn delete_abyssal_run_command(
         .map_err(|e| e.to_string());
     
     match &result {
-        Ok(_) => println!("[INFO] Abyssal run deleted successfully"),
-        Err(e) => println!("[ERROR] Failed to delete abyssal run: {}", e),
+        Ok(_) => info!("Abyssal run deleted successfully"),
+        Err(e) => warn!("Failed to delete abyssal run: {}", e),
     }
     
     result
@@ -370,22 +372,22 @@ async fn check_for_update_command(app_handle: AppHandle) -> Result<serde_json::V
     let latest_version = match get_latest_github_version().await {
         Ok(version) => version,
         Err(e) => {
-            println!("[ERROR] Failed to get latest version from GitHub: {}", e);
+            warn!("Failed to get latest version from GitHub: {}", e);
             return Err(format!("업데이트 확인 실패: {}", e));
         }
     };
     
-    println!("[DEBUG] Version comparison - Current: '{}', Latest: '{}'", current_version, latest_version);
+    info!("Version comparison - Current: '{}', Latest: '{}'", current_version, latest_version);
     
     // 버전 비교 (semantic version)
     let needs_update = compare_versions(&current_version, &latest_version);
     
-    println!("[DEBUG] Version comparison result: needs_update = {}", needs_update);
+    info!("Version comparison result: needs_update = {}", needs_update);
     
     if needs_update {
-        println!("[INFO] Update available - Current: {}, Latest: {}", current_version, latest_version);
+        info!("Update available - Current: {}, Latest: {}", current_version, latest_version);
     } else {
-        println!("[INFO] No updates available - Current: {}, Latest: {} (already up to date)", current_version, latest_version);
+        info!("No updates available - Current: {}, Latest: {} (already up to date)", current_version, latest_version);
     }
     
     Ok(serde_json::json!({
@@ -405,22 +407,22 @@ fn compare_versions(current: &str, latest: &str) -> bool {
     let current_parts = parse_version(current);
     let latest_parts = parse_version(latest);
     
-    println!("[DEBUG] Parsed versions - Current: {:?}, Latest: {:?}", current_parts, latest_parts);
+    info!("Parsed versions - Current: {:?}, Latest: {:?}", current_parts, latest_parts);
     
     for i in 0..std::cmp::max(current_parts.len(), latest_parts.len()) {
         let current_part = current_parts.get(i).unwrap_or(&0);
         let latest_part = latest_parts.get(i).unwrap_or(&0);
         
         if latest_part > current_part {
-            println!("[DEBUG] Update needed: latest part {} > current part {} at position {}", latest_part, current_part, i);
+            info!("Update needed: latest part {} > current part {} at position {}", latest_part, current_part, i);
             return true;
         } else if latest_part < current_part {
-            println!("[DEBUG] No update needed: latest part {} < current part {} at position {}", latest_part, current_part, i);
+            info!("No update needed: latest part {} < current part {} at position {}", latest_part, current_part, i);
             return false;
         }
     }
     
-    println!("[DEBUG] Versions are equal");
+    info!("Versions are equal");
     false
 }
 
@@ -481,8 +483,6 @@ async fn get_latest_github_release() -> Result<(String, String), String> {
     Ok((version, download_url.to_string()))
 }
 
-
-
 #[tauri::command]
 async fn download_and_install_update_command(app_handle: AppHandle) -> Result<String, String> {
     let current_version = app_handle.package_info().version.to_string();
@@ -491,7 +491,7 @@ async fn download_and_install_update_command(app_handle: AppHandle) -> Result<St
     let (latest_version, download_url) = match get_latest_github_release().await {
         Ok((version, url)) => (version, url),
         Err(e) => {
-            println!("[WARN] Failed to get latest version from GitHub during install: {}", e);
+            warn!("Failed to get latest version from GitHub during install: {}", e);
             return Err(format!("GitHub API 오류: {}", e));
         }
     };
@@ -500,11 +500,11 @@ async fn download_and_install_update_command(app_handle: AppHandle) -> Result<St
     let needs_update = compare_versions(&current_version, &latest_version);
     
     if !needs_update {
-        println!("[INFO] No update needed - Current: {}, Latest: {}", current_version, latest_version);
+        info!("No update needed - Current: {}, Latest: {}", current_version, latest_version);
         return Ok("이미 최신 버전입니다".to_string());
     }
     
-    println!("[INFO] Downloading and installing update - Current: {}, Latest: {}", current_version, latest_version);
+    info!("Downloading and installing update - Current: {}, Latest: {}", current_version, latest_version);
     
     // 임시 폴더에 설치 파일 다운로드
     let temp_dir = std::env::temp_dir();
@@ -526,14 +526,14 @@ async fn download_and_install_update_command(app_handle: AppHandle) -> Result<St
     std::fs::write(&installer_path, bytes)
         .map_err(|e| format!("설치 파일 저장 실패: {}", e))?;
     
-    println!("[INFO] Downloaded installer to: {}", installer_path.display());
+    info!("Downloaded installer to: {}", installer_path.display());
     
     // 설치 파일 실행 (일반적인 더블클릭 방식)
-    println!("[INFO] Launching installer: {}", installer_path.display());
+    info!("Launching installer: {}", installer_path.display());
     
     match std::process::Command::new(&installer_path).spawn() {
         Ok(_) => {
-            println!("[INFO] Installer launched successfully, exiting application immediately");
+            info!("Installer launched successfully, exiting application immediately");
             
             // 설치 프로그램이 시작되면 즉시 앱 종료
             std::thread::spawn(move || {
@@ -543,7 +543,7 @@ async fn download_and_install_update_command(app_handle: AppHandle) -> Result<St
             Ok("업데이트 설치 프로그램이 시작되었습니다.".to_string())
         },
         Err(e) => {
-            println!("[ERROR] Failed to launch installer: {}", e);
+            warn!("Failed to launch installer: {}", e);
             // 파일 정리
             let _ = std::fs::remove_file(&installer_path);
             Err(format!("설치 파일 실행 실패: {}", e))
@@ -558,7 +558,7 @@ async fn get_csv_data_path(app_handle: AppHandle) -> Result<String, String> {
             let data_dir = app_data_dir.join("data");
             // 디렉토리가 없으면 생성
             if let Err(e) = std::fs::create_dir_all(&data_dir) {
-                eprintln!("Warning: Failed to create app data directory: {}", e);
+                warn!("Warning: Failed to create app data directory: {}", e);
                 // 실패 시 현재 디렉토리의 data 폴더 사용
                 std::path::PathBuf::from("data")
             } else {
@@ -566,7 +566,7 @@ async fn get_csv_data_path(app_handle: AppHandle) -> Result<String, String> {
             }
         },
         Err(e) => {
-            eprintln!("Warning: Failed to get app data directory: {}, using local data directory", e);
+            warn!("Warning: Failed to get app data directory: {}, using local data directory", e);
             std::path::PathBuf::from("data")
         }
     };
@@ -651,6 +651,16 @@ async fn export_daily_analysis(
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(
+            tauri_plugin_log::Builder::default()
+                .targets([
+                    Target::new(TargetKind::LogDir {
+                        file_name: Some("eve_abyssal_tracker".to_string()),
+                    }),
+                    Target::new(TargetKind::Stdout),
+                ])
+                .build()
+        )
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
@@ -682,20 +692,20 @@ pub fn run() {
                     Ok(app_data_dir) => {
                         let data_dir = app_data_dir.join("data");
                         if let Err(e) = std::fs::create_dir_all(&data_dir) {
-                            eprintln!("Warning: Failed to create app data directory for IconCache: {}", e);
+                            warn!("Warning: Failed to create app data directory for IconCache: {}", e);
                             std::path::PathBuf::from("data")
                         } else {
                             data_dir
                         }
                     },
                     Err(e) => {
-                        eprintln!("Warning: Failed to get app data directory for IconCache: {}, using local data directory", e);
+                        warn!("Warning: Failed to get app data directory for IconCache: {}, using local data directory", e);
                         std::path::PathBuf::from("data")
                     }
                 };
                 let mut icon_cache = IconCache::new(data_dir);
                 if let Err(e) = icon_cache.initialize().await {
-                    eprintln!("Failed to initialize IconCache: {}", e);
+                    error!("Failed to initialize IconCache: {}", e);
                 }
                 let icon_cache_arc = Arc::new(Mutex::new(icon_cache));
                 app_handle.manage(icon_cache_arc);
@@ -721,7 +731,7 @@ pub fn run() {
                 let app_handle_for_callback = app_handle.clone();
                 let on_abyssal_run_end = Box::new(move |start_time: DateTime<Local>, end_time: DateTime<Local>| {
                     // Python의 _on_abyssal_run_end와 동일한 로직
-                    println!("Abyssal run ended: {} to {}", start_time, end_time);
+                    info!("Abyssal run ended: {} to {}", start_time, end_time);
                     
                     // 런 시간 계산
                     let duration = end_time.signed_duration_since(start_time);
@@ -742,7 +752,7 @@ pub fn run() {
                             end_time_str,
                             duration_str_clone
                         ).await {
-                            println!("[ERROR] Failed to open abyssal result window: {}", e);
+                            warn!("Failed to open abyssal result window: {}", e);
                         }
                     });
                 });
@@ -769,7 +779,7 @@ pub fn run() {
                 let system_change_processor_for_file_change = system_change_processor.clone();
                 let on_log_file_change = Box::new(move || {
                     // Python의 _on_log_file_change와 동일한 로직
-                    println!("[INFO] Log file changed. Re-scanning past runs.");
+                    info!("Log file changed. Re-scanning past runs.");
                     let system_change_processor = system_change_processor_for_file_change.clone();
                     let config_manager = config_manager_for_callback.clone();
                     tauri::async_runtime::spawn(async move {
@@ -791,14 +801,14 @@ pub fn run() {
                 
                 // Python과 동일한 초기화
                 if let Err(e) = log_monitor.initialize().await {
-                    eprintln!("Failed to initialize LogMonitor: {}", e);
+                    error!("Failed to initialize LogMonitor: {}", e);
                 }
                 
                 let log_monitor_arc = Arc::new(Mutex::new(log_monitor));
                 app_handle.manage(log_monitor_arc.clone());
                 
                 // LogMonitor는 설정에서 수동으로 시작하도록 변경
-                println!("[INFO] LogMonitor initialized, ready to start manually from settings.");
+                info!("LogMonitor initialized, ready to start manually from settings.");
 
                 // 9. AbyssalRunTracker 초기화 (Python의 tracker.py와 동일)
                 let abyssal_run_tracker = AbyssalRunTracker::new(
@@ -829,7 +839,7 @@ pub fn run() {
                             }
                         }
                     } else {
-                        println!("[WARNING] Could not access config for initial scan, but continuing with application startup.");
+                        info!("Could not access config for initial scan, but continuing with application startup.");
                     }
                 });
             });

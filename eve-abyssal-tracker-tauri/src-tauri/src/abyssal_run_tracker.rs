@@ -2,6 +2,7 @@
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tauri::{AppHandle, Manager};
+use log::*;
 
 use crate::config_manager::ConfigManager;
 use crate::eve_log_processor::EveLogProcessor;
@@ -49,21 +50,21 @@ impl AbyssalRunTracker {
 
     // 어비설 런 종료 이벤트를 처리합니다.
     pub async fn _on_abyssal_run_end(&self) {
-        println!("Abyssal run ended.");
+        info!("Abyssal run ended.");
         // 여기에 런 종료 시 필요한 로직 구현
         // 예: 데이터 저장, 통계 업데이트, UI 알림 등
     }
 
     // 애플리케이션 종료 로직을 처리합니다.
     pub async fn _exit_application(&self) {
-        println!("Exiting application.");
+        info!("Exiting application.");
         // 여기에 애플리케이션 종료 시 필요한 정리 로직 구현
         // 예: 모든 스레드 종료, 리소스 해제 등
     }
 
     // 어비설 런 모니터링을 시작합니다.
     pub async fn start_monitoring(&self) -> Result<(), String> {
-        println!("Starting abyssal run monitoring.");
+        info!("Starting abyssal run monitoring.");
         // 여기에 모니터링 시작 로직 구현
         // LogMonitor, SystemChangeProcessor 등을 사용하여 이벤트 감지 및 처리
         // 예: log_monitor.start_monitoring().await?;

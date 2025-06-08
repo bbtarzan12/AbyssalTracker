@@ -12,7 +12,7 @@ use tokio::{
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use crossbeam_channel as channel;
 use encoding_rs::UTF_16LE;
-use log::{info, warn, error};
+use log::*;
 
 use crate::config_manager::ConfigManager;
 use crate::eve_log_processor::EveLogProcessor;
@@ -81,7 +81,7 @@ impl LogMonitor {
         let files = self.log_processor.find_all_log_files();
         
         if files.is_empty() {
-            println!("[INFO] No local chat log files found in '{}'.", self.logs_path.display());
+            info!("No local chat log files found in '{}'.", self.logs_path.display());
             return None;
         }
 
@@ -103,7 +103,7 @@ impl LogMonitor {
                 let detected_name = self.log_processor.detect_character_name(Some(file_path));
                 if let Some(detected) = detected_name {
                     if detected == self.character_name {
-                        println!("[INFO] Found matching log for character '{}': {} (modified: {:?})", 
+                        info!("Found matching log for character '{}': {} (modified: {:?})", 
                             self.character_name,
                             file_path.file_name().unwrap_or_default().to_string_lossy(),
                             mtime
@@ -114,10 +114,10 @@ impl LogMonitor {
                 }
             }
             
-            println!("[WARNING] No log files found for character '{}'. Available files:", self.character_name);
+            warn!("No log files found for character '{}'. Available files:", self.character_name);
             for (file_path, _) in files_with_mtime.iter().take(5) {
                 let detected_name = self.log_processor.detect_character_name(Some(file_path));
-                println!("  - {} (character: {:?})", 
+                warn!("  - {} (character: {:?})", 
                     file_path.file_name().unwrap_or_default().to_string_lossy(),
                     detected_name
                 );
@@ -132,13 +132,13 @@ impl LogMonitor {
             let detected_name = self.log_processor.detect_character_name(Some(latest_file));
             if let Some(detected) = detected_name {
                 self.character_name = detected.clone();
-                println!("[INFO] Auto-detected character name: '{}' from {}", 
+                info!("Auto-detected character name: '{}' from {}", 
                     self.character_name, 
                     latest_file.file_name().unwrap_or_default().to_string_lossy()
                 );
                 Some(latest_file.clone())
             } else {
-                println!("[WARNING] Could not auto-detect character name from: '{}'",
+                warn!("Could not auto-detect character name from: '{}'",
                     latest_file.file_name().unwrap_or_default().to_string_lossy()
                 );
                 None
@@ -205,7 +205,7 @@ impl LogMonitor {
         
         if let Some(latest_path) = latest {
             if self.log_file.as_ref() != Some(&latest_path) {
-                println!("[INFO] Switching to new log file: {}", 
+                info!("Switching to new log file: {}", 
                     latest_path.file_name().unwrap_or_default().to_string_lossy());
                 self.log_file = Some(latest_path.clone());
                 
@@ -228,7 +228,7 @@ impl LogMonitor {
                 }
             }
         } else if self.log_file.is_some() {
-            println!("[WARNING] Current log file '{}' is no longer the preferred log. No suitable new log found.",
+            warn!("Current log file '{}' is no longer the preferred log. No suitable new log found.",
                 self.log_file.as_ref().unwrap().file_name().unwrap_or_default().to_string_lossy());
             self.log_file = None;
             self.last_position = 0;
@@ -244,7 +244,7 @@ impl LogMonitor {
         mut monitor: LogMonitor,
         mut stop_signal_receiver: mpsc::Receiver<()>,
     ) {
-        println!("[INFO] 로그 모니터링 루프 시작.");
+        info!("로그 모니터링 루프 시작.");
         
         loop {
             tokio::select! {
@@ -257,8 +257,8 @@ impl LogMonitor {
                     if monitor.log_file.is_none() {
                         monitor.log_file = monitor.find_latest_local_log().await;
                         if let Some(ref log_file) = monitor.log_file {
-                            println!("[INFO] Monitoring log file: {} (full path: {})", 
-                                log_file.file_name().unwrap_or_default().to_string_lossy(),
+                            info!("Monitoring log file: {} (full path: {})", 
+                                log_file.file_name().and_then(|n| n.to_str()).unwrap_or("unknown"),
                                 log_file.display());
                             
                             if let Ok(metadata) = tokio::fs::metadata(log_file).await {
@@ -274,7 +274,7 @@ impl LogMonitor {
                                 monitor.last_line_count = 0;
                             }
                         } else {
-                            println!("[INFO] Waiting for a suitable log file...");
+                            info!("Waiting for a suitable log file...");
                             tokio::time::sleep(Duration::from_secs(5)).await;
                             continue;
                         }
@@ -290,7 +290,7 @@ impl LogMonitor {
                             // 현재 로그 파일이 여전히 존재하고 최신인지 간단히 확인
                             if let Some(ref current_file) = monitor.log_file {
                                 if !current_file.exists() {
-                                    println!("[INFO] Current log file no longer exists, searching for new one...");
+                                    info!("Current log file no longer exists, searching for new one...");
                                     let latest = monitor.find_latest_local_log().await;
                                     if let Some(latest_path) = latest {
                                         monitor.log_file = Some(latest_path.clone());
@@ -335,12 +335,12 @@ impl LogMonitor {
                 let lines: Vec<&str> = content.lines().collect();
                 self.last_line_count = lines.len();
                 
-                println!("[INFO] Starting monitoring from end of file (line {})", self.last_line_count);
+                info!("Starting monitoring from end of file (line {})", self.last_line_count);
             }
         }
 
         if self.log_file.is_some() && !self.character_name.is_empty() {
-            println!("[INFO] LogMonitor started for character: {}", self.character_name);
+            info!("LogMonitor started for character: {}", self.character_name);
 
             let (stop_tx, stop_rx) = mpsc::channel(1);
             *self.stop_signal_sender.lock().await = Some(stop_tx);
@@ -383,7 +383,7 @@ impl LogMonitor {
             let task = tokio::spawn(Self::monitor_loop(monitor_clone, stop_rx));
             *self.monitor_task.lock().await = Some(task);
         } else {
-            println!("[ERROR] LogMonitor failed to initialize. No suitable log file found or character name not detected.");
+            warn!("LogMonitor failed to initialize. No suitable log file found or character name not detected.");
             self.monitoring = false;
             return Err("LogMonitor failed to initialize".into());
         }

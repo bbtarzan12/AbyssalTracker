@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use serde_json::Value;
 use tokio::fs;
 use anyhow::Result;
+use log::*;
 
 pub struct IconCache {
     data_dir: PathBuf,
@@ -38,9 +39,9 @@ impl IconCache {
                 }
             }
             
-            println!("[INFO] IconCache loaded {} type IDs from cache", self.type_id_cache.len());
+            info!("IconCache loaded {} type IDs from cache", self.type_id_cache.len());
         } else {
-            println!("[WARNING] typeid_cache.json not found at: {:?}, will be created when needed", cache_file);
+            warn!("typeid_cache.json not found at: {:?}, will be created when needed", cache_file);
         }
         
         Ok(())

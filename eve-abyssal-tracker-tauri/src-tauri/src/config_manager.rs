@@ -5,6 +5,7 @@ use anyhow::{Result, anyhow};
 use tauri::{AppHandle, Manager, State};
 use configparser::ini::Ini;
 use std::sync::Arc; // Arc 추가
+use log::*;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AppConfig {
@@ -153,7 +154,7 @@ impl ConfigManager {
 
     pub fn create_default(&mut self) -> Result<()> {
         self.config = AppConfig::default();
-        println!("[INFO] {} 파일이 생성되었습니다.\nlogs_path와 character_name 값을 확인/수정한 후 프로그램을 다시 실행하세요.", self.config_path.display());
+                    info!("{} 파일이 생성되었습니다.\nlogs_path와 character_name 값을 확인/수정한 후 프로그램을 다시 실행하세요.", self.config_path.display());
         // Tauri 환경에서는 즉시 종료하지 않고 기본값으로 계속 진행
         Ok(())
     }
@@ -164,7 +165,7 @@ impl ConfigManager {
         
         // Tauri 환경에서는 경고만 출력하고 계속 진행
         if logs_path.is_empty() || character_name.is_empty() {
-            println!("[WARNING] {}에 logs_path와 character_name 값을 입력하면 더 나은 기능을 사용할 수 있습니다.", self.config_path.display());
+            warn!("{}에 logs_path와 character_name 값을 입력하면 더 나은 기능을 사용할 수 있습니다.", self.config_path.display());
         }
         Ok(())
     }

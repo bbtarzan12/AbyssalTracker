@@ -7,6 +7,7 @@ use regex::Regex;
 use chrono::{DateTime, Local};
 use std::ops::{BitAnd, Not};
 use csv;
+use log::*;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AbyssalResult {
@@ -106,7 +107,7 @@ impl AbyssalDataManager {
                             
                             all_dataframes.push(df);
                         },
-                        Err(e) => eprintln!("Warning: Failed to read CSV {}: {}", file_name, e),
+                        Err(e) => warn!("Warning: Failed to read CSV {}: {}", file_name, e),
                     }
                 }
             }

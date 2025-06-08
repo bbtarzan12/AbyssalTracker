@@ -5,6 +5,7 @@ use reqwest::Client;
 use anyhow::{Result, anyhow};
 use tokio::fs;
 use tauri::{AppHandle, Manager};
+use log::*;
 
 // Python과 동일한 상수값들
 const REGION_ID: u32 = 10000002; // The Forge
@@ -82,14 +83,14 @@ impl EVEApi {
             Ok(app_data_dir) => {
                 let data_dir = app_data_dir.join("data");
                 if let Err(e) = std::fs::create_dir_all(&data_dir) {
-                    eprintln!("Warning: Failed to create app data directory for EVEApi: {}", e);
+                    warn!("Warning: Failed to create app data directory for EVEApi: {}", e);
                     std::path::PathBuf::from("data")
                 } else {
                     data_dir
                 }
             },
             Err(e) => {
-                eprintln!("Warning: Failed to get app data directory for EVEApi: {}, using local data directory", e);
+                warn!("Warning: Failed to get app data directory for EVEApi: {}, using local data directory", e);
                 std::path::PathBuf::from("data")
             }
         };
@@ -113,7 +114,7 @@ impl EVEApi {
             let loaded_cache: HashMap<String, u32> = serde_json::from_str(&content)?;
             let cache_len = loaded_cache.len();
             *self.name_to_id_cache.lock().await = loaded_cache;
-            println!("[INFO] EVEApi loaded {} type IDs from cache", cache_len);
+            info!("EVEApi loaded {} type IDs from cache", cache_len);
         }
         Ok(())
     }
@@ -126,7 +127,7 @@ impl EVEApi {
         
         let content = serde_json::to_string_pretty(&*self.name_to_id_cache.lock().await)?;
         fs::write(&cache_path, content).await?;
-        println!("[INFO] EVEApi saved {} type IDs to cache", self.name_to_id_cache.lock().await.len());
+        info!("EVEApi saved {} type IDs to cache", self.name_to_id_cache.lock().await.len());
         Ok(())
     }
 
@@ -146,10 +147,10 @@ impl EVEApi {
                     .unwrap()
                     .as_secs() - cached_at)) / 60;
                 
-                println!("[INFO] 가격 캐시 로드 성공 ({}개 아이템, 남은 시간: {}분)", 
+                info!("가격 캐시 로드 성공 ({}개 아이템, 남은 시간: {}분)", 
                     prices_count, remaining_minutes);
             } else {
-                println!("[INFO] 가격 캐시가 만료되어 삭제합니다.");
+                info!("가격 캐시가 만료되어 삭제합니다.");
                 let _ = fs::remove_file(&cache_path).await;
             }
         }
@@ -169,7 +170,7 @@ impl EVEApi {
         fs::write(&cache_path, content).await?;
         
         *self.price_cache.lock().await = Some(cached_data);
-        println!("[INFO] 가격 캐시 저장 완료 ({}개 아이템, 30분 TTL)", prices.len());
+        info!("가격 캐시 저장 완료 ({}개 아이템, 30분 TTL)", prices.len());
         Ok(())
     }
 
@@ -191,19 +192,19 @@ impl EVEApi {
 
         let cached_count = name_to_id.len();
         if cached_count > 0 {
-            println!("[INFO] type_id 캐시에서 {}개 아이템 조회", cached_count);
+            info!("type_id 캐시에서 {}개 아이템 조회", cached_count);
         }
 
         if names_to_query.is_empty() {
-            println!("[INFO] 모든 아이템 type_id가 캐시에 존재합니다. API 호출 건너뜀.");
+            info!("모든 아이템 type_id가 캐시에 존재합니다. API 호출 건너뜀.");
             return Ok(name_to_id);
         }
 
-        println!("[INFO] ESI API로 {}개의 아이템 type_id 조회 시작...", names_to_query.len());
+        info!("ESI API로 {}개의 아이템 type_id 조회 시작...", names_to_query.len());
         
         // Python과 동일하게 20개씩 청크로 나누어 처리
         for (i, chunk) in names_to_query.chunks(20).enumerate() {
-            println!("[INFO] ESI API 호출 중... ({}/{})", i * 20 + 1, names_to_query.len());
+            info!("ESI API 호출 중... ({}/{})", i * 20 + 1, names_to_query.len());
             
             match self.fetch_chunk_type_ids(chunk.to_vec()).await {
                 Ok(chunk_results) => {
@@ -214,7 +215,9 @@ impl EVEApi {
                     }
                 }
                 Err(e) => {
-                    println!("[ERROR] ESI API 호출 중 오류 발생: {}, 청크: {:?}", e, chunk);
+                    error!("ESI API 호출 중 오류 발생: {}, 청크: {:?}", e, chunk);
+                    // 오류 발생 시 해당 청크는 건너뛰고 계속 진행
+                    continue;
                 }
             }
             
@@ -223,7 +226,7 @@ impl EVEApi {
         }
 
         self.save_cache().await?;
-        println!("[INFO] ESI API type_id 조회 완료. 총 {}개 변환 성공.", name_to_id.len());
+        info!("ESI API type_id 조회 완료. 총 {}개 변환 성공.", name_to_id.len());
         Ok(name_to_id)
     }
 
@@ -247,7 +250,7 @@ impl EVEApi {
         let response_data: serde_json::Value = response.json().await?;
         
         if response_data.is_null() {
-            println!("[WARNING] ESI API 응답이 비어있습니다. 청크: {:?}", chunk);
+            warn!("ESI API 응답이 비어있습니다. 청크: {:?}", chunk);
             return Ok(result);
         }
 
@@ -267,7 +270,7 @@ impl EVEApi {
 
     pub async fn fetch_fuzzwork_prices(&self, ids: Vec<u32>) -> Result<HashMap<String, serde_json::Value>> {
         if ids.is_empty() {
-            println!("[INFO] Fuzzwork API에 조회할 type_id가 없습니다.");
+            info!("Fuzzwork API에 조회할 type_id가 없습니다.");
             return Ok(HashMap::new());
         }
 
@@ -293,7 +296,7 @@ impl EVEApi {
                         .unwrap()
                         .as_secs() - cached_data.cached_at)) / 60;
                     
-                    println!("[INFO] 가격 캐시에서 {}개 아이템 조회 (남은 시간: {}분)", result.len(), remaining_minutes);
+                    info!("가격 캐시에서 {}개 아이템 조회 (남은 시간: {}분)", result.len(), remaining_minutes);
                     drop(cache_guard);
                     return Ok(result);
                 }
@@ -302,7 +305,7 @@ impl EVEApi {
         drop(cache_guard);
 
         // 캐시 미스 또는 만료된 경우 API 호출
-        println!("[INFO] 가격 캐시 미스, Fuzzwork API 호출 중...");
+        info!("가격 캐시 미스, Fuzzwork API 호출 중...");
         
         let ids_str: Vec<String> = ids.iter().map(|id| id.to_string()).collect();
         let url = format!(
@@ -319,37 +322,37 @@ impl EVEApi {
         {
             Ok(response) => {
                 if !response.status().is_success() {
-                    println!("[ERROR] Fuzzwork API HTTP 오류: {} - URL: {}", response.status(), url);
+                    error!("Fuzzwork API HTTP 오류: {} - URL: {}", response.status(), url);
                     return Ok(HashMap::new());
                 }
 
                 match response.json::<HashMap<String, serde_json::Value>>().await {
                     Ok(data) => {
                         if data.is_empty() {
-                            println!("[WARNING] Fuzzwork API 응답이 비어있습니다. URL: {}", url);
+                            warn!("Fuzzwork API 응답이 비어있습니다. URL: {}", url);
                         } else {
-                            println!("[INFO] Fuzzwork API 시세 조회 성공. {}개 아이템.", data.len());
+                            info!("Fuzzwork API 시세 조회 성공. {}개 아이템.", data.len());
                             
                             // 새로운 데이터를 캐시에 저장
                             if let Err(e) = self.save_price_cache(&data).await {
-                                println!("[WARNING] 가격 캐시 저장 실패: {}", e);
+                                warn!("가격 캐시 저장 실패: {}", e);
                             }
                         }
                         Ok(data)
                     }
                     Err(e) => {
-                        println!("[ERROR] Fuzzwork API 응답 JSON 디코딩 오류: {}", e);
+                        error!("Fuzzwork API 응답 JSON 디코딩 오류: {}", e);
                         Ok(HashMap::new())
                     }
                 }
             }
             Err(e) => {
                 if e.is_timeout() {
-                    println!("[ERROR] Fuzzwork API 호출 타임아웃 발생: {}", url);
+                    error!("Fuzzwork API 호출 타임아웃 발생: {}", url);
                 } else if e.is_connect() {
-                    println!("[ERROR] Fuzzwork API 연결 오류: {}, URL: {}", e, url);
+                    error!("Fuzzwork API 연결 오류: {}, URL: {}", e, url);
                 } else {
-                    println!("[ERROR] Fuzzwork API 호출 중 오류 발생: {}", e);
+                    error!("Fuzzwork API 호출 중 오류 발생: {}", e);
                 }
                 Ok(HashMap::new())
             }

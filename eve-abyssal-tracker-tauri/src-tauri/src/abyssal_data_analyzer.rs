@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use polars::prelude::*;
 use tauri::{AppHandle, Emitter};
 use crate::{eve_api::EVEApi, abyssal_data_manager::AbyssalDataManager};
+use log::*;
 
 // Implement From<String> for anyhow::Error to allow using `?` with String errors
 
@@ -111,7 +112,7 @@ impl AbyssalDataAnalyzer {
         let start_total = std::time::Instant::now();
         
         self.emit_progress("csv_load", "CSV 파일 로드 중...", Some(0.0), false);
-        println!("📂 [AbyssalDataAnalyzer] CSV 파일 로드 중...");
+        info!("📂 [AbyssalDataAnalyzer] CSV 파일 로드 중...");
         let start_csv_load = std::time::Instant::now();
         
         let df = self.data_manager.lock().await.load_abyssal_results()
@@ -119,11 +120,11 @@ impl AbyssalDataAnalyzer {
         
         let end_csv_load = start_csv_load.elapsed();
         self.emit_progress("csv_load", &format!("CSV 파일 로드 완료 ({:.2}초)", end_csv_load.as_secs_f64()), Some(100.0), true);
-        println!("  ▶️ CSV 파일 로드 완료. 소요 시간: {:.2}초 ✅", end_csv_load.as_secs_f64());
+                    info!("  ▶️ CSV 파일 로드 완료. 소요 시간: {:.2}초 ✅", end_csv_load.as_secs_f64());
         
         if df.is_empty() {
             self.emit_progress("csv_load", "분석할 데이터가 없습니다", Some(100.0), true);
-            println!("❌ 분석할 데이터가 없습니다.");
+            warn!("❌ 분석할 데이터가 없습니다.");
             return Ok(AnalysisResult {
                 df: vec![],
                 daily_stats: HashMap::new(),
@@ -137,7 +138,7 @@ impl AbyssalDataAnalyzer {
             });
         }
 
-        println!("  ▶️ 총 {}개의 런 데이터 로드 완료. ✅", df.height());
+        info!("  ▶️ 총 {}개의 런 데이터 로드 완료. ✅", df.height());
         
         self.emit_progress("item_collection", "모든 아이템 이름 수집 중...", Some(0.0), false);
         println!("  ▶️ 모든 아이템 이름 수집 중... 🔍");
