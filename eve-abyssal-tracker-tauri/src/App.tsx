@@ -33,7 +33,7 @@ function App() {
   const [popupTitle, setPopupTitle] = useState("");
   const [popupMessage, setPopupMessage] = useState("");
   const [popupType, setPopupType] = useState<"info" | "warning" | "error">("info");
-  const [logMonitorRunning, setLogMonitorRunning] = useState(false);
+  const [abyssalWindowEnabled, setAbyssalWindowEnabled] = useState(true);
   const [appInitializing, setAppInitializing] = useState(true);
   const [needsInitialSetup, setNeedsInitialSetup] = useState(false);
   const [checkingConfig, setCheckingConfig] = useState(true);
@@ -263,12 +263,11 @@ function App() {
     console.log('[INFO] UI state updated after run deletion');
   }, [abyssalData]);
 
-  // 자동 모니터링 시작 함수
+  // 자동 모니터링 시작 함수 (앱 시작 시 항상 실행)
   const startLogMonitoring = useCallback(async () => {
     try {
       console.log('[INFO] 자동으로 로그 모니터링을 시작합니다...');
       await invoke("start_log_monitor_command");
-      setLogMonitorRunning(true);
       triggerPopup("모니터링 시작", "EVE 로그 모니터링이 자동으로 시작되었습니다.", "info");
     } catch (error) {
       console.error("자동 모니터링 시작 실패:", error);
@@ -299,7 +298,8 @@ function App() {
 
     const unlistenLogMonitorStatus = listen("log_monitor_status", (event) => {
       const payload = event.payload as { status: string };
-      setLogMonitorRunning(payload.status === "started");
+      // 로그 모니터링은 항상 실행되므로 상태 업데이트 불필요
+      console.log('[INFO] Log monitor status:', payload.status);
     });
 
     const unlistenAbyssalRunCompleted = listen("abyssal_run_completed", () => {
@@ -488,8 +488,8 @@ function App() {
         )}
         {activeTab === 'settings' && (
           <Settings
-            logMonitorRunning={logMonitorRunning}
-            setLogMonitorRunning={setLogMonitorRunning}
+            abyssalWindowEnabled={abyssalWindowEnabled}
+            setAbyssalWindowEnabled={setAbyssalWindowEnabled}
             triggerPopup={triggerPopup}
           />
         )}
