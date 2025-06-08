@@ -83,6 +83,16 @@ export const getBestImageUrl = async (typeId: number, itemName: string): Promise
   }
 };
 
+export const reloadIconCache = async (): Promise<void> => {
+  try {
+    await invoke('reload_icon_cache');
+    console.log('Icon cache reloaded successfully');
+  } catch (error) {
+    console.error('Failed to reload icon cache:', error);
+    throw error;
+  }
+};
+
 // 런 타입 배지 컴포넌트
 interface RunTypeBadgeProps {
   abyssalType: string;
@@ -168,6 +178,7 @@ export const ItemIcon: React.FC<ItemIconProps> = ({ typeId, itemName, size = 32,
           const cleanItemName = itemName.replace('*', '').trim();
           const fetchedTypeId = await getItemTypeId(cleanItemName);
           if (!fetchedTypeId) {
+            console.warn(`ItemIcon: Failed to get typeId for item "${itemName}" (cleaned: "${cleanItemName}")`);
             setError(true);
             setLoading(false);
             return;

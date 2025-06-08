@@ -24,6 +24,14 @@ impl IconCache {
         Ok(())
     }
 
+    pub async fn reload(&mut self) -> Result<()> {
+        // 캐시 클리어 후 다시 로드
+        self.type_id_cache.clear();
+        self.load_type_id_cache().await?;
+        info!("IconCache reloaded with {} type IDs", self.type_id_cache.len());
+        Ok(())
+    }
+
     async fn load_type_id_cache(&mut self) -> Result<()> {
         let cache_file = self.data_dir.join("typeid_cache.json");
         
@@ -73,6 +81,22 @@ impl IconCache {
                 return Some(*type_id);
             }
         }
+        
+        // 부분 매칭 시도 (검색어가 캐시된 이름에 포함되는 경우)
+        for (cached_name, type_id) in &self.type_id_cache {
+            let normalized_cached = cached_name.to_lowercase().replace(&[' ', '\t', '\n', '\r'][..], " ");
+            let normalized_cached = normalized_cached.split_whitespace().collect::<Vec<_>>().join(" ");
+            
+            if normalized_cached.contains(&normalized_search) || normalized_search.contains(&normalized_cached) {
+                debug!("IconCache: Partial match found for '{}' -> '{}' (type_id: {})", 
+                       item_name, cached_name, type_id);
+                return Some(*type_id);
+            }
+        }
+        
+        // 매칭 실패 시 디버그 정보 출력
+        warn!("IconCache: Failed to find type_id for item '{}' (cleaned: '{}', normalized: '{}')", 
+              item_name, cleaned_name, normalized_search);
         
         None
     }

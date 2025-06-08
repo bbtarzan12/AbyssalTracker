@@ -133,6 +133,14 @@ function App() {
     try {
       const parsedResult = await invoke("analyze_abyssal_data_command") as AbyssalData;
       setAbyssalData(parsedResult);
+      
+      // 분석 완료 후 IconCache 다시 로드
+      try {
+        await invoke("reload_icon_cache");
+        console.log('[INFO] IconCache reloaded after data analysis');
+      } catch (cacheError) {
+        console.warn('[WARN] Failed to reload icon cache:', cacheError);
+      }
     } catch (err) {
       console.error("Failed to fetch abyssal data:", err);
       setDataError(`데이터 로딩 실패: ${err}`);
@@ -158,6 +166,14 @@ function App() {
     try {
       const parsedResult = await invoke("light_refresh_abyssal_data_command") as AbyssalData;
       setAbyssalData(parsedResult);
+      
+      // 가벼운 새로고침 후에도 IconCache 다시 로드 (새로운 아이템이 있을 수 있음)
+      try {
+        await invoke("reload_icon_cache");
+        console.log('[INFO] IconCache reloaded after light refresh');
+      } catch (cacheError) {
+        console.warn('[WARN] Failed to reload icon cache after light refresh:', cacheError);
+      }
     } catch (err) {
       console.error("Failed to light refresh abyssal data:", err);
       setDataError(`가벼운 데이터 새로고침 실패: ${err}`);

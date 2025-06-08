@@ -365,6 +365,13 @@ async fn get_best_image_url(app_handle: AppHandle, type_id: u32, item_name: Stri
 }
 
 #[tauri::command]
+async fn reload_icon_cache(app_handle: AppHandle) -> Result<(), String> {
+    let icon_cache = app_handle.state::<Arc<Mutex<IconCache>>>();
+    let mut cache = icon_cache.lock().await;
+    cache.reload().await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 async fn check_for_update_command(app_handle: AppHandle) -> Result<serde_json::Value, String> {
     let current_version = app_handle.package_info().version.to_string();
     
@@ -953,6 +960,7 @@ pub fn run() {
             get_filament_name,
             get_icon_url,
             get_best_image_url,
+            reload_icon_cache,
             detect_eve_log_path,
             get_csv_data_path,
             export_daily_analysis,
