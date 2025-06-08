@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import './InitialSetup.css';
@@ -12,6 +12,32 @@ const InitialSetup: React.FC<InitialSetupProps> = ({ onSetupComplete }) => {
   const [characterName, setCharacterName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isAutoDetecting, setIsAutoDetecting] = useState(true);
+
+  // 컴포넌트 마운트 시 기본 EVE 로그 경로 자동 감지
+  useEffect(() => {
+    const detectDefaultLogPath = async () => {
+      try {
+        setIsAutoDetecting(true);
+        
+        // Tauri 백엔드를 통해 기본 EVE 로그 경로 확인
+        const detectedPath = await invoke<string | null>('detect_eve_log_path');
+        
+        if (detectedPath) {
+          setLogPath(detectedPath);
+          console.log('EVE 로그 경로 자동 감지 성공:', detectedPath);
+        } else {
+          console.log('EVE 로그 경로를 자동으로 찾을 수 없습니다.');
+        }
+      } catch (err) {
+        console.error('EVE 로그 경로 자동 감지 실패:', err);
+      } finally {
+        setIsAutoDetecting(false);
+      }
+    };
+
+    detectDefaultLogPath();
+  }, []);
 
   const handleBrowseLogPath = async () => {
     try {
@@ -59,10 +85,7 @@ const InitialSetup: React.FC<InitialSetupProps> = ({ onSetupComplete }) => {
     }
   };
 
-  const handleSkip = () => {
-    // 임시로 기본값 설정하고 넘어가기
-    onSetupComplete();
-  };
+
 
   return (
     <div className="initial-setup-overlay">
@@ -93,18 +116,30 @@ const InitialSetup: React.FC<InitialSetupProps> = ({ onSetupComplete }) => {
                 type="text"
                 value={logPath}
                 onChange={(e) => setLogPath(e.target.value)}
-                placeholder="로그 폴더 경로를 선택하거나 직접 입력해주세요..."
+                placeholder={isAutoDetecting ? "EVE 로그 경로 자동 감지 중..." : "로그 폴더 경로를 선택하거나 직접 입력해주세요..."}
                 className="setup-input"
-                disabled={isLoading}
+                disabled={isLoading || isAutoDetecting}
               />
               <button
                 onClick={handleBrowseLogPath}
                 className="browse-button"
-                disabled={isLoading}
+                disabled={isLoading || isAutoDetecting}
               >
                 <span className="button-icon">📂</span>
                 폴더 선택
               </button>
+              {isAutoDetecting && (
+                <div className="auto-detect-status">
+                  <span className="status-icon">🔍</span>
+                  기본 EVE 로그 경로 자동 감지 중...
+                </div>
+              )}
+              {!isAutoDetecting && logPath && (
+                <div className="auto-detect-status success">
+                  <span className="status-icon">✅</span>
+                  EVE 로그 경로 자동 감지 완료
+                </div>
+              )}
             </div>
           </div>
 
@@ -142,16 +177,9 @@ const InitialSetup: React.FC<InitialSetupProps> = ({ onSetupComplete }) => {
 
         <div className="setup-footer">
           <button
-            onClick={handleSkip}
-            className="secondary-button"
-            disabled={isLoading}
-          >
-            나중에 설정
-          </button>
-          <button
             onClick={handleSubmit}
             className="primary-button"
-            disabled={isLoading}
+            disabled={isLoading || isAutoDetecting}
           >
             {isLoading ? (
               <>

@@ -552,6 +552,43 @@ async fn download_and_install_update_command(app_handle: AppHandle) -> Result<St
 }
 
 #[tauri::command]
+async fn detect_eve_log_path() -> Result<Option<String>, String> {
+    use std::env;
+    use std::path::PathBuf;
+    
+    // Windows에서 기본 EVE 로그 경로 감지
+    if let Ok(home_dir) = env::var("USERPROFILE") {
+        let eve_log_path = PathBuf::from(&home_dir)
+            .join("Documents")
+            .join("EVE")
+            .join("logs")
+            .join("Chatlogs");
+        
+        if eve_log_path.exists() && eve_log_path.is_dir() {
+            info!("EVE 로그 경로 자동 감지 성공: {:?}", eve_log_path);
+            return Ok(Some(eve_log_path.to_string_lossy().to_string()));
+        }
+    }
+    
+    // macOS에서 기본 EVE 로그 경로 감지
+    if let Ok(home_dir) = env::var("HOME") {
+        let eve_log_path = PathBuf::from(&home_dir)
+            .join("Documents")
+            .join("EVE")
+            .join("logs")
+            .join("Chatlogs");
+        
+        if eve_log_path.exists() && eve_log_path.is_dir() {
+            info!("EVE 로그 경로 자동 감지 성공: {:?}", eve_log_path);
+            return Ok(Some(eve_log_path.to_string_lossy().to_string()));
+        }
+    }
+    
+    warn!("EVE 로그 경로를 자동으로 찾을 수 없습니다.");
+    Ok(None)
+}
+
+#[tauri::command]
 async fn get_csv_data_path(app_handle: AppHandle) -> Result<String, String> {
     let data_dir_path = match app_handle.path().app_data_dir() {
         Ok(app_data_dir) => {
@@ -872,6 +909,7 @@ pub fn run() {
             get_filament_name,
             get_icon_url,
             get_best_image_url,
+            detect_eve_log_path,
             get_csv_data_path,
             export_daily_analysis,
             check_for_update_command,
