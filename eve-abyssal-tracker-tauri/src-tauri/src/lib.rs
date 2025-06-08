@@ -432,55 +432,99 @@ async fn get_latest_github_version() -> Result<String, String> {
 }
 
 async fn get_latest_github_release() -> Result<(String, String), String> {
-    use std::collections::HashMap;
+    use quick_xml::events::Event;
+    use quick_xml::Reader;
+    
+    info!("Fetching latest release info from GitHub RSS feed...");
     
     let client = reqwest::Client::new();
     let response = client
-        .get("https://api.github.com/repos/bbtarzan12/AbyssalTracker/releases/latest")
+        .get("https://github.com/bbtarzan12/AbyssalTracker/releases.atom")
         .header("User-Agent", "EVE-Abyssal-Tracker")
         .send()
         .await
-        .map_err(|e| format!("Failed to fetch latest release: {}", e))?;
+        .map_err(|e| format!("Failed to fetch RSS feed: {}", e))?;
         
     if !response.status().is_success() {
-        return Err(format!("GitHub API error: {}", response.status()));
+        return Err(format!("RSS feed error: {}", response.status()));
     }
     
-    let json: HashMap<String, serde_json::Value> = response
-        .json()
-        .await
-        .map_err(|e| format!("Failed to parse JSON: {}", e))?;
-        
-    let tag_name = json.get("tag_name")
-        .and_then(|v| v.as_str())
-        .ok_or("No tag_name found in response")?;
-        
-    // "v1.0.4" 형태에서 "v" 제거
-    let version = if tag_name.starts_with('v') {
-        tag_name[1..].to_string()
-    } else {
-        tag_name.to_string()
-    };
+    let rss_content = response.text().await
+        .map_err(|e| format!("Failed to read RSS content: {}", e))?;
     
-    // assets에서 .exe 파일 찾기
-    let assets = json.get("assets")
-        .and_then(|v| v.as_array())
-        .ok_or("No assets found in response")?;
+    // RSS에서 최신 릴리즈 정보 파싱
+    let mut reader = Reader::from_str(&rss_content);
+    reader.config_mut().trim_text(true);
     
-    let setup_asset = assets.iter()
-        .find(|asset| {
-            asset.get("name")
-                .and_then(|name| name.as_str())
-                .map(|name| name.ends_with("-setup.exe"))
-                .unwrap_or(false)
-        })
-        .ok_or("No setup.exe file found in release assets")?;
+    let mut in_first_entry = false;
+    let mut entry_count = 0;
+    let mut current_tag = String::new();
+    let mut version = String::new();
+    let mut found_version = false;
     
-    let download_url = setup_asset.get("browser_download_url")
-        .and_then(|url| url.as_str())
-        .ok_or("No download URL found for setup.exe")?;
+    loop {
+        match reader.read_event() {
+            Ok(Event::Start(ref e)) => {
+                let tag_name_string = String::from_utf8_lossy(e.name().as_ref()).to_string();
+                if tag_name_string == "entry" {
+                    entry_count += 1;
+                    if entry_count == 1 {
+                        in_first_entry = true;
+                    }
+                }
+                current_tag = tag_name_string;
+            },
+            Ok(Event::Text(e)) => {
+                if in_first_entry && current_tag == "title" {
+                    let title = e.unescape().unwrap_or_default();
+                    // 제목에서 버전 추출 (예: "v1.0.4" 또는 "1.0.4")
+                    if let Some(version_match) = extract_version_from_title(&title) {
+                        version = version_match;
+                        found_version = true;
+                        break;
+                    }
+                }
+            },
+            Ok(Event::End(ref e)) => {
+                let tag_name_string = String::from_utf8_lossy(e.name().as_ref()).to_string();
+                if tag_name_string == "entry" && in_first_entry {
+                    break;
+                }
+            },
+            Ok(Event::Eof) => break,
+            Err(e) => return Err(format!("RSS parsing error: {}", e)),
+            _ => {}
+        }
+    }
     
-    Ok((version, download_url.to_string()))
+    if !found_version || version.is_empty() {
+        return Err("No version found in RSS feed".to_string());
+    }
+    
+    info!("Found latest version from RSS: {}", version);
+    
+    // 다운로드 URL 생성 (GitHub 릴리즈 패턴 사용)
+    let download_url = format!(
+        "https://github.com/bbtarzan12/AbyssalTracker/releases/download/v{}/EVE_Abyssal_Tracker_{}_x64-setup.exe",
+        version, version
+    );
+    
+    Ok((version, download_url))
+}
+
+fn extract_version_from_title(title: &str) -> Option<String> {
+    use regex::Regex;
+    
+    // 버전 패턴 매칭 (v1.0.4, 1.0.4 등)
+    let version_regex = Regex::new(r"v?(\d+\.\d+\.\d+)").ok()?;
+    
+    if let Some(captures) = version_regex.captures(title) {
+        if let Some(version) = captures.get(1) {
+            return Some(version.as_str().to_string());
+        }
+    }
+    
+    None
 }
 
 #[tauri::command]

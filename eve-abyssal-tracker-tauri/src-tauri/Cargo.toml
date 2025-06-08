@@ -47,4 +47,5 @@ polars = { version = "0.39", features = ["json", "lazy"] }
 whoami = "1.5"
 urlencoding = "2.1"
 rand = "0.8"
+quick-xml = "0.36"
 
