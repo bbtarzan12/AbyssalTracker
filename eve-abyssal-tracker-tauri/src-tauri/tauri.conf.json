@@ -32,7 +32,7 @@
       "venv": "python/.venv"
     }
   },
-  "version": "1.0.22",
+  "version": "1.0.24",
   "bundle": {
     "active": true,
     "icon": [
