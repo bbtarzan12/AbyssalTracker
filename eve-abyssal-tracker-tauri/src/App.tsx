@@ -9,48 +9,7 @@ import UpdateDialog from "./components/UpdateDialog";
 
 import LoadingProgress from "./components/LoadingProgress";
 import "./App.css";
-
-// 데이터 인터페이스들
-interface RunData {
-  '시작시각(KST)': string;
-  '종료시각(KST)': string;
-  '런 소요(분)': number;
-  '어비셜 종류': string;
-  '실수익': number;
-  'ISK/h': number;
-  '획득 아이템': string;
-  '날짜': string;
-}
-
-interface DailyStats {
-  [date: string]: {
-    runs: RunData[];
-    avg_isk: number;
-    avg_time: number;
-    avg_iskph: number;
-  };
-}
-
-interface OverallStats {
-  avg_isk: number;
-  avg_time: number;
-  avg_iskph: number;
-  tier_weather_stats: {
-    tier: string;
-    weather: string;
-    runs_count: number;
-    avg_isk: number;
-    avg_time: number;
-    avg_iskph: number;
-  }[];
-}
-
-interface AbyssalData {
-  df: RunData[];
-  daily_stats: DailyStats;
-  overall_stats: OverallStats;
-  item_buy_price_cache: { [key: string]: number };
-}
+import type { RunData, AbyssalData } from "./types";
 
 interface LoadingStep {
   id: string;
@@ -79,7 +38,7 @@ function App() {
   // 업데이트 관련 상태
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
   const [latestVersion, setLatestVersion] = useState("");
-  const [currentVersion, setCurrentVersion] = useState("1.0.22");
+  const [currentVersion] = useState("1.0.22");
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [isDownloadingUpdate, setIsDownloadingUpdate] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
@@ -109,27 +68,6 @@ function App() {
     }, 5000);
   }, []);
 
-  // 수동 업데이트 체크 함수 (설정 페이지에서 사용)
-  const checkForUpdatesManually = useCallback(async () => {
-    if (checkingUpdate) return;
-    
-    setCheckingUpdate(true);
-    try {
-      const updateInfo = await invoke("check_for_update_command") as { available: boolean; latest_version: string };
-      
-      if (updateInfo.available) {
-        setLatestVersion(updateInfo.latest_version);
-        setShowUpdateDialog(true);
-      } else {
-        triggerPopup("업데이트", "현재 최신 버전을 사용 중입니다.", "info");
-      }
-    } catch (error) {
-      console.error("업데이트 체크 실패:", error);
-      triggerPopup("업데이트 체크 실패", `업데이트 확인 중 오류가 발생했습니다: ${error}`, "error");
-    } finally {
-      setCheckingUpdate(false);
-    }
-  }, [checkingUpdate, triggerPopup]);
 
   // 업데이트 실행 함수
   const handleUpdate = useCallback(async () => {

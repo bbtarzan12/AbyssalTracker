@@ -1,31 +1,7 @@
 import React, { useMemo } from 'react';
 import { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area } from 'recharts';
 import './OverallStatsDisplay.css';
-
-interface RunData {
-  '시작시각(KST)': string;
-  '종료시각(KST)': string;
-  '런 소요(분)': number;
-  '어비셜 종류': string;
-  '실수익': number;
-  'ISK/h': number;
-  '획득 아이템': string;
-  '날짜': string;
-}
-
-interface OverallStats {
-  avg_isk: number;
-  avg_time: number;
-  avg_iskph: number;
-  tier_weather_stats: {
-    tier: string;
-    weather: string;
-    runs_count: number;
-    avg_isk: number;
-    avg_time: number;
-    avg_iskph: number;
-  }[];
-}
+import type { RunData, OverallStats } from "../types";
 
 interface OverallStatsDisplayProps {
   df: RunData[];

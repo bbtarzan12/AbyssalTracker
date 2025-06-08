@@ -4,27 +4,7 @@ import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, A
 import { parseItems, aggregateItems, ItemIcon, RunTypeBadge } from './utils';
 import ShipClassIcon from './ShipClassIcon';
 import './DailyStatsDisplay.css';
-
-interface RunData {
-  '시작시각(KST)': string;
-  '종료시각(KST)': string;
-  '런 소요(분)': number;
-  '어비셜 종류': string;
-  '함급': number;
-  '실수익': number;
-  'ISK/h': number;
-  '획득 아이템': string;
-  '날짜': string;
-}
-
-interface DailyStats {
-  [date: string]: {
-    runs: RunData[];
-    avg_isk: number;
-    avg_time: number;
-    avg_iskph: number;
-  };
-}
+import type { RunData, DailyStats } from "../types";
 
 interface DailyStatsDisplayProps {
   df: RunData[];

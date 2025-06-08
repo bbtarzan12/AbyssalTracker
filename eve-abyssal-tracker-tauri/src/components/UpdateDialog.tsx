@@ -1,5 +1,4 @@
 import React from 'react';
-import { invoke } from '@tauri-apps/api/core';
 
 interface UpdateDialogProps {
   show: boolean;

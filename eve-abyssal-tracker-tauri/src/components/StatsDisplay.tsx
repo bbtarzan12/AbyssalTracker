@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import DailyStatsDisplay from './DailyStatsDisplay';
 import OverallStatsDisplay from './OverallStatsDisplay';
 import './StatsDisplay.css';
+import type { AbyssalData, RunData } from "../types";
 
 interface StatsDisplayProps {
   data: AbyssalData | null;
@@ -10,47 +11,6 @@ interface StatsDisplayProps {
   onLightRefresh?: () => Promise<void>;
   onRunDeleted?: (run: RunData) => void;
   triggerPopup: (title: string, message: string, type?: "info" | "warning" | "error") => void;
-}
-
-interface RunData {
-  '시작시각(KST)': string;
-  '종료시각(KST)': string;
-  '런 소요(분)': number;
-  '어비셜 종류': string;
-  '실수익': number;
-  'ISK/h': number;
-  '획득 아이템': string;
-  '날짜': string;
-}
-
-interface DailyStats {
-  [date: string]: {
-    runs: RunData[];
-    avg_isk: number;
-    avg_time: number;
-    avg_iskph: number;
-  };
-}
-
-interface OverallStats {
-  avg_isk: number;
-  avg_time: number;
-  avg_iskph: number;
-  tier_weather_stats: {
-    tier: string;
-    weather: string;
-    runs_count: number;
-    avg_isk: number;
-    avg_time: number;
-    avg_iskph: number;
-  }[];
-}
-
-interface AbyssalData {
-  df: RunData[];
-  daily_stats: DailyStats;
-  overall_stats: OverallStats;
-  item_buy_price_cache: { [key: string]: number };
 }
 
 const StatsDisplay: React.FC<StatsDisplayProps> = ({ data, dataError, onRefresh, onLightRefresh, onRunDeleted, triggerPopup: _triggerPopup }) => {
