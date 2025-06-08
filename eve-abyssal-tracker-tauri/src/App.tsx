@@ -247,18 +247,33 @@ function App() {
     console.log('[INFO] UI state updated after run deletion');
   }, [abyssalData]);
 
-  // 초기 설정 완료 후 데이터 로딩
+  // 자동 모니터링 시작 함수
+  const startLogMonitoring = useCallback(async () => {
+    try {
+      console.log('[INFO] 자동으로 로그 모니터링을 시작합니다...');
+      await invoke("start_log_monitor_command");
+      setLogMonitorRunning(true);
+      triggerPopup("모니터링 시작", "EVE 로그 모니터링이 자동으로 시작되었습니다.", "info");
+    } catch (error) {
+      console.error("자동 모니터링 시작 실패:", error);
+      triggerPopup("모니터링 시작 실패", `자동 모니터링 시작에 실패했습니다: ${error}`, "warning");
+    }
+  }, [triggerPopup]);
+
+  // 초기 설정 완료 후 데이터 로딩 및 모니터링 시작
   const handleSetupComplete = useCallback(async () => {
     setNeedsInitialSetup(false);
     setAppInitializing(true);
     try {
       await loadAbyssalData();
+      // 데이터 로딩 완료 후 자동으로 모니터링 시작
+      await startLogMonitoring();
     } catch (error) {
       console.error("데이터 로딩 실패:", error);
     } finally {
       setAppInitializing(false);
     }
-  }, [loadAbyssalData]);
+  }, [loadAbyssalData, startLogMonitoring]);
 
   useEffect(() => {
     const unlistenPopup = listen("trigger_popup", (event) => {
@@ -307,6 +322,8 @@ function App() {
         } else {
           setNeedsInitialSetup(false);
           await loadAbyssalData();
+          // 기존 설정이 있는 경우 데이터 로딩 완료 후 자동으로 모니터링 시작
+          await startLogMonitoring();
           setAppInitializing(false);
         }
       } catch (error) {
@@ -358,7 +375,7 @@ function App() {
       unlistenAbyssalRunCompleted.then(f => f());
       unlistenProgress.then(f => f());
     };
-  }, [triggerPopup, loadAbyssalData, lightRefreshAbyssalData]);
+  }, [triggerPopup, loadAbyssalData, lightRefreshAbyssalData, startLogMonitoring]);
 
   // 초기 설정이 필요한 경우
   if (needsInitialSetup) {
