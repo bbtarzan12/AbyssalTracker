@@ -1,7 +1,6 @@
 {
   "name": "eve-abyssal-tracker-tauri",
   "private": true,
-  "version": "1.0.22",
   "type": "module",
   "scripts": {
     "dev": "vite",

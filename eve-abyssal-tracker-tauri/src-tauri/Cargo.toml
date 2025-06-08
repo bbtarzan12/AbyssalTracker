@@ -1,6 +1,5 @@
 [package]
 name = "eve-abyssal-tracker-tauri"
-version = "1.0.22"  # package.json과 동기화
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
