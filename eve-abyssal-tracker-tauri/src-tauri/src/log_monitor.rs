@@ -280,32 +280,46 @@ impl LogMonitor {
                         }
                     }
 
-                    // 모니터링 상태 체크 (매 10회마다)
-                    static mut MONITOR_COUNT: u32 = 0;
-                    unsafe {
-                        MONITOR_COUNT += 1;
-                        
-                        // 매 300회(10분)마다만 최신 로그 파일 재확인 (너무 자주 하지 않도록)
-                        if MONITOR_COUNT % 300 == 0 {
-                            // 현재 로그 파일이 여전히 존재하고 최신인지 간단히 확인
-                            if let Some(ref current_file) = monitor.log_file {
-                                if !current_file.exists() {
-                                    info!("Current log file no longer exists, searching for new one...");
-                                    let latest = monitor.find_latest_local_log().await;
-                                    if let Some(latest_path) = latest {
-                                        monitor.log_file = Some(latest_path.clone());
-                                                                if let Ok(metadata) = tokio::fs::metadata(&latest_path).await {
-                            monitor.last_position = metadata.len();
-                            
-                            // 새 파일을 끝부터 모니터링하도록 설정
-                            let file_content = tokio::fs::read(&latest_path).await.unwrap_or_default();
-                            let (cow, _, _) = UTF_16LE.decode(&file_content);
-                            let content = cow.into_owned();
-                            let lines: Vec<&str> = content.lines().collect();
-                            monitor.last_line_count = lines.len();
+                                        // 매번 최신 로그 파일 확인 (파일 체크는 빠르므로)
+                    let current_file_clone = monitor.log_file.clone();
+                    if let Some(current_file) = current_file_clone {
+                        if !current_file.exists() {
+                            info!("Current log file no longer exists, searching for new one...");
+                            let latest = monitor.find_latest_local_log().await;
+                            if let Some(latest_path) = latest {
+                                monitor.log_file = Some(latest_path.clone());
+                                if let Ok(metadata) = tokio::fs::metadata(&latest_path).await {
+                                    monitor.last_position = metadata.len();
+                                    
+                                    // 새 파일을 끝부터 모니터링하도록 설정
+                                    let file_content = tokio::fs::read(&latest_path).await.unwrap_or_default();
+                                    let (cow, _, _) = UTF_16LE.decode(&file_content);
+                                    let content = cow.into_owned();
+                                    let lines: Vec<&str> = content.lines().collect();
+                                    monitor.last_line_count = lines.len();
+                                } else {
+                                    monitor.last_line_count = 0;
+                                }
+                            }
                         } else {
-                            monitor.last_line_count = 0;
-                        }
+                            // 현재 파일이 존재하더라도 더 최신 파일이 있는지 확인
+                            let latest = monitor.find_latest_local_log().await;
+                            if let Some(latest_path) = latest {
+                                if latest_path != current_file {
+                                    info!("Found newer log file, switching from {:?} to {:?}", 
+                                        current_file.file_name(), latest_path.file_name());
+                                    monitor.log_file = Some(latest_path.clone());
+                                    if let Ok(metadata) = tokio::fs::metadata(&latest_path).await {
+                                        monitor.last_position = metadata.len();
+                                        
+                                        // 새 파일을 끝부터 모니터링하도록 설정
+                                        let file_content = tokio::fs::read(&latest_path).await.unwrap_or_default();
+                                        let (cow, _, _) = UTF_16LE.decode(&file_content);
+                                        let content = cow.into_owned();
+                                        let lines: Vec<&str> = content.lines().collect();
+                                        monitor.last_line_count = lines.len();
+                                    } else {
+                                        monitor.last_line_count = 0;
                                     }
                                 }
                             }
@@ -339,8 +353,13 @@ impl LogMonitor {
             }
         }
 
-        if self.log_file.is_some() && !self.character_name.is_empty() {
-            info!("LogMonitor started for character: {}", self.character_name);
+        // 캐릭터 이름이 설정되어 있으면 모니터링 시작 (로그 파일이 없어도 대기)
+        if !self.character_name.is_empty() {
+            if self.log_file.is_some() {
+                info!("LogMonitor started for character: {} with log file", self.character_name);
+            } else {
+                info!("LogMonitor started for character: {} (waiting for log file)", self.character_name);
+            }
 
             let (stop_tx, stop_rx) = mpsc::channel(1);
             *self.stop_signal_sender.lock().await = Some(stop_tx);
@@ -383,9 +402,8 @@ impl LogMonitor {
             let task = tokio::spawn(Self::monitor_loop(monitor_clone, stop_rx));
             *self.monitor_task.lock().await = Some(task);
         } else {
-            warn!("LogMonitor failed to initialize. No suitable log file found or character name not detected.");
+            info!("LogMonitor waiting for character name configuration");
             self.monitoring = false;
-            return Err("LogMonitor failed to initialize".into());
         }
 
         Ok(())
@@ -403,5 +421,9 @@ impl LogMonitor {
         }
         
         // TODO: observer 정리
+    }
+
+    pub fn get_current_log_file_info(&self) -> Option<(std::path::PathBuf, bool)> {
+        self.log_file.as_ref().map(|path| (path.clone(), self.monitoring))
     }
 }

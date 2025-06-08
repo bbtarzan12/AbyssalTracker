@@ -1,6 +1,7 @@
 use tauri::{AppHandle, Manager, Emitter}; // Manager, Emitter 트레이트 추가
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
 use polars::prelude::*;
 use polars::io::json::JsonWriter;
 use chrono::{DateTime, Local};
@@ -30,6 +31,9 @@ use abyssal_run_tracker::AbyssalRunTracker;
 
 mod icon_cache; // 아이콘 캐싱 모듈 추가
 use icon_cache::IconCache;
+
+// 어비셜 윈도우 활성화 상태 (전역)
+static ABYSSAL_WINDOW_ENABLED: AtomicBool = AtomicBool::new(true);
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 
@@ -93,23 +97,21 @@ pub async fn restart_log_monitor_if_running(app_handle: &AppHandle) -> Result<()
         // 기존 모니터링 중지
         log_monitor.lock().await.stop().await;
         
-        // LogMonitor 재초기화
+        // LogMonitor 재초기화 (로그 파일이 없어도 계속 진행)
         {
             let mut monitor = log_monitor.lock().await;
             if let Err(e) = monitor.initialize().await {
-                return Err(format!("Failed to reinitialize LogMonitor: {}", e));
+                warn!("LogMonitor initialization warning (may be waiting for log file): {}", e);
             }
         }
         
-        // 모니터링 재시작
+        // 모니터링 재시작 (로그 파일이 없어도 계속 진행)
         let scp_arc = Arc::clone(&*system_change_processor);
-        if let Err(e) = log_monitor.lock().await.start(scp_arc).await {
-            return Err(format!("Failed to restart LogMonitor: {}", e));
-        }
+        log_monitor.lock().await.start(scp_arc).await;
         
         // 상태 이벤트 발송
         let _ = app_handle.emit("log_monitor_status", serde_json::json!({ "status": "restarted" }));
-        info!("LogMonitor restarted successfully");
+        info!("LogMonitor restarted (may be waiting for log file)");
     }
     
     Ok(())
@@ -334,6 +336,119 @@ async fn process_log_line_command(app_handle: AppHandle, line: String) -> Result
 async fn scan_past_runs_command(app_handle: AppHandle, logs_path: String, character_name: String) -> Result<(), String> {
     let system_change_processor = app_handle.state::<Arc<Mutex<SystemChangeProcessor>>>();
     system_change_processor.lock().await.scan_past_runs(&logs_path, &character_name).await;
+    Ok(())
+}
+
+#[tauri::command]
+async fn get_location_info_command(app_handle: AppHandle) -> Result<crate::system_change_processor::LocationInfo, String> {
+    let system_change_processor = app_handle.state::<Arc<Mutex<SystemChangeProcessor>>>();
+    let config_manager = app_handle.state::<Arc<Mutex<ConfigManager>>>();
+    
+    // 설정에서 캐릭터 이름 가져오기
+    let character_name = {
+        let config = config_manager.lock().await;
+        config.get_character_name()
+    };
+    
+    // 최신 위치 정보 스캔
+    {
+        let mut processor = system_change_processor.lock().await;
+        if let Err(e) = processor.scan_latest_location(&character_name).await {
+            warn!("Failed to scan latest location: {}", e);
+            // 스캔 실패해도 기존 정보라도 반환
+        }
+    }
+    
+    // 위치 정보 반환
+    let processor = system_change_processor.lock().await;
+    Ok(processor.get_location_info())
+}
+
+#[tauri::command]
+async fn set_abyssal_window_enabled(enabled: bool) -> Result<(), String> {
+    ABYSSAL_WINDOW_ENABLED.store(enabled, Ordering::Relaxed);
+    info!("Abyssal window enabled set to: {}", enabled);
+    Ok(())
+}
+
+#[tauri::command]
+async fn get_abyssal_window_enabled() -> Result<bool, String> {
+    Ok(ABYSSAL_WINDOW_ENABLED.load(Ordering::Relaxed))
+}
+
+#[tauri::command]
+async fn get_current_log_file_info(app_handle: AppHandle) -> Result<Option<serde_json::Value>, String> {
+    let log_monitor = app_handle.state::<Arc<Mutex<LogMonitor>>>();
+    let monitor = log_monitor.lock().await;
+    
+    if let Some((log_file, monitoring)) = monitor.get_current_log_file_info() {
+        let file_name = log_file.file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("Unknown")
+            .to_string();
+        
+        let full_path = log_file.to_string_lossy().to_string();
+        
+        // 파일 크기와 수정 시간 정보도 포함
+        let (file_size, modified_time) = if let Ok(metadata) = std::fs::metadata(&log_file) {
+            let size = metadata.len();
+            let modified_time_str = if let Ok(modified) = metadata.modified() {
+                // 시스템 시간을 chrono DateTime으로 변환
+                let datetime: chrono::DateTime<chrono::Utc> = modified.into();
+                // 한국 시간(KST = UTC+9)으로 변환
+                let kst_datetime = datetime.with_timezone(&chrono::FixedOffset::east_opt(9 * 3600).unwrap());
+                // 문자열로 포맷
+                kst_datetime.format("%Y-%m-%d %H:%M:%S").to_string()
+            } else {
+                "정보 없음".to_string()
+            };
+            (size, modified_time_str)
+        } else {
+            (0, "정보 없음".to_string())
+        };
+        
+        let info = serde_json::json!({
+            "file_name": file_name,
+            "full_path": full_path,
+            "file_size": file_size,
+            "modified_time": modified_time,
+            "monitoring": monitoring
+        });
+        
+        Ok(Some(info))
+    } else {
+        Ok(None)
+    }
+}
+
+#[tauri::command]
+async fn open_file_in_system(file_path: String) -> Result<(), String> {
+    use std::process::Command;
+    
+    #[cfg(target_os = "windows")]
+    {
+        Command::new("explorer")
+            .arg(&file_path)
+            .spawn()
+            .map_err(|e| format!("Failed to open file: {}", e))?;
+    }
+    
+    #[cfg(target_os = "macos")]
+    {
+        Command::new("open")
+            .arg(&file_path)
+            .spawn()
+            .map_err(|e| format!("Failed to open file: {}", e))?;
+    }
+    
+    #[cfg(target_os = "linux")]
+    {
+        Command::new("xdg-open")
+            .arg(&file_path)
+            .spawn()
+            .map_err(|e| format!("Failed to open file: {}", e))?;
+    }
+    
     Ok(())
 }
 
@@ -839,13 +954,18 @@ pub fn run() {
                     let duration_str_clone = duration_str.clone();
                     
                     tauri::async_runtime::spawn(async move {
-                        if let Err(e) = crate::open_abyssal_result_window(
-                            app_handle_clone,
-                            start_time_str,
-                            end_time_str,
-                            duration_str_clone
-                        ).await {
-                            warn!("Failed to open abyssal result window: {}", e);
+                        // 어비셜 윈도우가 활성화되어 있을 때만 윈도우 열기
+                        if ABYSSAL_WINDOW_ENABLED.load(Ordering::Relaxed) {
+                            if let Err(e) = crate::open_abyssal_result_window(
+                                app_handle_clone,
+                                start_time_str,
+                                end_time_str,
+                                duration_str_clone
+                            ).await {
+                                warn!("Failed to open abyssal result window: {}", e);
+                            }
+                        } else {
+                            info!("Abyssal window disabled, skipping window display");
                         }
                     });
                 });
@@ -900,8 +1020,12 @@ pub fn run() {
                 let log_monitor_arc = Arc::new(Mutex::new(log_monitor));
                 app_handle.manage(log_monitor_arc.clone());
                 
-                // LogMonitor는 설정에서 수동으로 시작하도록 변경
-                info!("LogMonitor initialized, ready to start manually from settings.");
+                // 로그 모니터링 자동 시작 (로그 파일이 없어도 계속 진행)
+                {
+                    let scp_arc = Arc::clone(&system_change_processor);
+                    log_monitor_arc.lock().await.start(scp_arc).await;
+                    info!("LogMonitor auto-started (may be waiting for log file)");
+                }
 
                 // 9. AbyssalRunTracker 초기화 (Python의 tracker.py와 동일)
                 let abyssal_run_tracker = AbyssalRunTracker::new(
@@ -960,6 +1084,11 @@ pub fn run() {
             stop_log_monitor_command,
             process_log_line_command,
             scan_past_runs_command,
+            get_location_info_command,
+            set_abyssal_window_enabled,
+            get_abyssal_window_enabled,
+            get_current_log_file_info,
+            open_file_in_system,
             abyssal_run_tracker::start_abyssal_run_monitoring_command,
             get_type_id,
             get_filament_name,
