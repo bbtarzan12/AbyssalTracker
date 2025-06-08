@@ -5,34 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🚀 어비셜 런 완료</title>
     <style>
-        /* CSS Variables matching the main app */
+        /* EVE Space Design System - matching main app */
         :root {
-            --primary-bg: #0a0e13;
-            --secondary-bg: #151922;
-            --tertiary-bg: #1f2937;
-            --accent-bg: #2563eb;
-            --accent-hover: #3b82f6;
-            --surface-bg: #1e293b;
-            --overlay-bg: rgba(15, 23, 42, 0.95);
+            --primary-bg: #0a0d12;
+            --secondary-bg: #151a22;
+            --tertiary-bg: #1e252e;
+            --accent-bg: #ff8c00;
+            --accent-hover: #ffb347;
+            --surface-bg: #1a1f28;
+            --overlay-bg: rgba(10, 13, 18, 0.98);
 
-            --text-primary: #f8fafc;
+            --text-primary: #f1f5f9;
             --text-secondary: #cbd5e1;
             --text-muted: #94a3b8;
-            --text-accent: #60a5fa;
+            --text-accent: #ffa500;
 
-            --border-primary: #334155;
-            --border-secondary: #475569;
-            --border-accent: #3b82f6;
+            --border-primary: #2d3748;
+            --border-secondary: #4a5568;
+            --border-accent: #ff8c00;
 
             --success: #10b981;
             --warning: #f59e0b;
             --error: #ef4444;
             --info: #06b6d4;
 
-            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
-            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.6);
+            --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
 
             --space-1: 0.25rem;
             --space-2: 0.5rem;
@@ -59,7 +60,15 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: transparent;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(255, 165, 0, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 215, 0, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(220, 20, 60, 0.06) 0%, transparent 50%),
+                linear-gradient(135deg, 
+                  rgba(15, 23, 42, 0.98) 0%, 
+                  rgba(30, 41, 59, 0.95) 30%,
+                  rgba(20, 25, 35, 0.98) 70%,
+                  rgba(10, 15, 25, 0.99) 100%);
             color: var(--text-primary);
             min-height: 100vh;
             margin: 0;
@@ -67,16 +76,48 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Animated stars background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(2px 2px at 20px 30px, rgba(255, 255, 255, 0.2), transparent),
+                radial-gradient(2px 2px at 40px 70px, rgba(255, 165, 0, 0.3), transparent),
+                radial-gradient(1px 1px at 90px 40px, rgba(255, 255, 255, 0.3), transparent),
+                radial-gradient(1px 1px at 130px 80px, rgba(255, 215, 0, 0.2), transparent),
+                radial-gradient(2px 2px at 160px 30px, rgba(255, 255, 255, 0.2), transparent);
+            background-repeat: repeat;
+            background-size: 200px 100px;
+            animation: stars 20s linear infinite;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        @keyframes stars {
+            from { transform: translateY(0); }
+            to { transform: translateY(-100px); }
         }
 
         .abyssal-modal {
-            background: var(--surface-bg);
-            border: 2px solid var(--border-accent);
+            background: 
+                radial-gradient(circle at 50% 100%, rgba(255, 165, 0, 0.08) 0%, transparent 70%),
+                linear-gradient(145deg, var(--surface-bg) 0%, var(--primary-bg) 100%);
+            border: 2px solid rgba(255, 165, 0, 0.3);
             border-radius: var(--radius-xl);
             width: 100%;
             height: 100vh;
             overflow: hidden;
-            box-shadow: 0 0 50px rgba(37, 99, 235, 0.3), var(--shadow-xl);
+            box-shadow: 
+                0 0 50px rgba(255, 140, 0, 0.2), 
+                var(--shadow-2xl),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
             display: flex;
             flex-direction: column;
             position: relative;
@@ -89,7 +130,13 @@
             left: 0;
             right: 0;
             height: 3px;
-            background: linear-gradient(90deg, var(--accent-bg), var(--success), var(--warning), var(--accent-bg));
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                var(--accent-bg) 20%, 
+                var(--success) 40%, 
+                var(--warning) 60%, 
+                var(--accent-bg) 80%, 
+                transparent 100%);
             animation: shimmer 3s ease-in-out infinite;
         }
 
@@ -104,8 +151,10 @@
             align-items: center;
             justify-content: space-between;
             padding: var(--space-4) var(--space-6);
-            background: linear-gradient(135deg, var(--tertiary-bg), var(--secondary-bg));
-            border-bottom: 1px solid var(--border-primary);
+            background: 
+                radial-gradient(circle at 50% 100%, rgba(255, 165, 0, 0.08) 0%, transparent 70%),
+                linear-gradient(135deg, var(--tertiary-bg), var(--secondary-bg));
+            border-bottom: 1px solid rgba(255, 165, 0, 0.15);
             cursor: move;
             user-select: none;
         }
@@ -119,6 +168,7 @@
         .title-icon {
             font-size: 1.3rem;
             animation: pulse 2s ease-in-out infinite;
+            filter: drop-shadow(0 0 8px rgba(255, 165, 0, 0.4));
         }
 
         @keyframes pulse {
@@ -173,6 +223,7 @@
 
         .section-icon {
             font-size: 1.1rem;
+            filter: drop-shadow(0 0 4px rgba(255, 165, 0, 0.4));
         }
 
         /* Timeline Section */
@@ -321,7 +372,9 @@
          .modern-select:focus {
              outline: none;
              border-color: var(--accent-bg);
-             box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+             box-shadow: 
+                 0 0 0 2px rgba(255, 140, 0, 0.2),
+                 inset 0 1px 0 rgba(255, 255, 255, 0.05);
          }
 
          /* Optgroup Styling for Tier Grouping */
@@ -374,7 +427,9 @@
         .modern-textarea:focus {
             outline: none;
             border-color: var(--accent-bg);
-            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+            box-shadow: 
+                0 0 0 2px rgba(255, 140, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
         }
 
         .modern-textarea::placeholder {
@@ -405,8 +460,10 @@
              gap: var(--space-2);
              justify-content: flex-end;
              padding: var(--space-4);
-             border-top: 1px solid var(--border-primary);
-             background: var(--secondary-bg);
+             border-top: 1px solid rgba(255, 165, 0, 0.1);
+             background: 
+                 linear-gradient(180deg, transparent 0%, rgba(255, 165, 0, 0.02) 100%),
+                 var(--secondary-bg);
          }
 
          .primary-button,
@@ -425,15 +482,27 @@
          }
 
         .primary-button {
-            background: linear-gradient(135deg, var(--accent-bg), var(--accent-hover));
-            color: white;
-            box-shadow: var(--shadow-sm);
+            background: linear-gradient(135deg, 
+                rgba(255, 165, 0, 0.9) 0%, 
+                rgba(255, 140, 0, 1) 50%, 
+                rgba(255, 165, 0, 0.8) 100%);
+            color: var(--primary-bg);
+            font-weight: 700;
+            box-shadow: 
+                0 4px 12px rgba(255, 165, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 140, 0, 0.8);
         }
 
         .primary-button:hover {
-            background: linear-gradient(135deg, var(--accent-hover), #1d4ed8);
+            background: linear-gradient(135deg, 
+                rgba(255, 185, 0, 1) 0%, 
+                rgba(255, 165, 0, 1) 50%, 
+                rgba(255, 140, 0, 1) 100%);
             transform: translateY(-1px);
-            box-shadow: var(--shadow-md);
+            box-shadow: 
+                0 6px 16px rgba(255, 165, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
         }
 
         .secondary-button {
