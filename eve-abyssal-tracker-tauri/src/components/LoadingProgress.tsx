@@ -11,18 +11,14 @@ interface LoadingStep {
 }
 
 interface LoadingProgressProps {
-  show: boolean;
   steps: LoadingStep[];
   title?: string;
 }
 
 const LoadingProgress: React.FC<LoadingProgressProps> = ({ 
-  show, 
   steps, 
   title = "🔄 데이터 로딩 및 분석" 
 }) => {
-  if (!show) return null;
-
   const totalSteps = steps.length;
   const completedSteps = steps.filter(step => step.status === 'completed').length;
   const currentStep = steps.find(step => step.status === 'loading');

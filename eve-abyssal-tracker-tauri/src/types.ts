@@ -32,6 +32,7 @@ export interface OverallStats {
     avg_isk: number;
     avg_time: number;
     avg_iskph: number;
+    total_entry_cost: number;
   }[];
 }
 
@@ -46,4 +47,19 @@ export interface LocationInfo {
   current_system: string | null;
   previous_system: string | null;
   last_updated: string | null;
+}
+
+export interface LoadingStep {
+  id: string;
+  name: string;
+  status: 'pending' | 'loading' | 'completed' | 'error';
+  progress?: number;
+  message?: string;
+}
+
+export interface LoadingProgressEvent {
+  step: string;
+  message: string;
+  progress?: number;
+  completed: boolean;
 } 

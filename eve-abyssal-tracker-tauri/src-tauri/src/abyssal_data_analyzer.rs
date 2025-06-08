@@ -50,6 +50,7 @@ pub struct TierWeatherStats {
     pub avg_isk: f64,
     pub avg_time: f64,
     pub avg_iskph: f64,
+    pub total_entry_cost: f64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -393,6 +394,7 @@ impl AbyssalDataAnalyzer {
                 let avg_isk = runs.iter().map(|r| r.net_profit).sum::<f64>() / runs.len() as f64;
                 let avg_time = runs.iter().map(|r| r.run_time_minutes).sum::<f64>() / runs.len() as f64;
                 let avg_iskph = runs.iter().map(|r| r.isk_per_hour).sum::<f64>() / runs.len() as f64;
+                let total_entry_cost = runs.iter().map(|r| r.entry_cost).sum::<f64>();
                 
                 tier_weather_stats.push(TierWeatherStats {
                     tier,
@@ -401,6 +403,7 @@ impl AbyssalDataAnalyzer {
                     avg_isk,
                     avg_time,
                     avg_iskph,
+                    total_entry_cost,
                 });
             }
         }
@@ -667,6 +670,7 @@ impl AbyssalDataAnalyzer {
                 let avg_isk = runs.iter().map(|r| r.net_profit).sum::<f64>() / runs.len() as f64;
                 let avg_time = runs.iter().map(|r| r.run_time_minutes).sum::<f64>() / runs.len() as f64;
                 let avg_iskph = runs.iter().map(|r| r.isk_per_hour).sum::<f64>() / runs.len() as f64;
+                let total_entry_cost = runs.iter().map(|r| r.entry_cost).sum::<f64>();
                 
                 tier_weather_stats.push(TierWeatherStats {
                     tier,
@@ -675,6 +679,7 @@ impl AbyssalDataAnalyzer {
                     avg_isk,
                     avg_time,
                     avg_iskph,
+                    total_entry_cost,
                 });
             }
         }

@@ -1,7 +1,7 @@
 import React from 'react';
+import './UpdateDialog.css';
 
 interface UpdateDialogProps {
-  show: boolean;
   latestVersion: string;
   currentVersion: string;
   onClose: () => void;
@@ -11,7 +11,6 @@ interface UpdateDialogProps {
 }
 
 const UpdateDialog: React.FC<UpdateDialogProps> = ({ 
-  show, 
   latestVersion, 
   currentVersion, 
   onClose, 
@@ -19,8 +18,6 @@ const UpdateDialog: React.FC<UpdateDialogProps> = ({
   isDownloading = false,
   downloadProgress = 0
 }) => {
-  if (!show) return null;
-
   return (
     <div className="update-dialog-overlay">
       <div className="update-dialog">

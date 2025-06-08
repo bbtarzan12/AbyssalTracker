@@ -1,0 +1,26 @@
+.daily-briefing-container {
+  display: flex;
+  justify-content: space-around;
+  padding: var(--space-4);
+  background-color: var(--background-secondary);
+  border-radius: var(--border-radius-medium);
+  margin-bottom: var(--space-6);
+}
+
+.briefing-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.briefing-label {
+  font-size: var(--font-size-small);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.briefing-value {
+  font-size: var(--font-size-large);
+  font-weight: bold;
+  color: var(--text-primary);
+} 

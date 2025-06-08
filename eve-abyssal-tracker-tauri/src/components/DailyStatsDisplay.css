@@ -38,9 +38,68 @@
   line-height: 1.6;
 }
 
+.data-table-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.data-table-header {
+  padding: var(--space-4);
+  background: var(--secondary-bg);
+  border-bottom: 1px solid var(--border-primary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.table-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.table-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.toolbar-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--tertiary-bg);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.toolbar-btn:hover {
+  background: var(--secondary-bg);
+  color: var(--text-primary);
+  border-color: var(--border-secondary);
+}
+
+.runs-table {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  max-height: 570px; /* 테이블 최대 높이 제한 (약 4개 아이템) */
+  padding-right: var(--space-2); /* 스크롤바 공간 확보 */
+}
+
 /* Filter Controls - Extended for Daily Stats */
 .filter-controls {
   /* Base styles are in StatsDisplay.css */
+  display: flex;
+  background: var(--surface-bg);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-xl);
   flex-direction: row;
   padding: var(--space-3);
 }
@@ -52,6 +111,9 @@
   align-items: center !important;
   flex-shrink: 0;
   flex-wrap: nowrap;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: all var(--transition-fast);
 }
 
 /* Export Button in Table Actions */
@@ -205,18 +267,14 @@
 }
 
 /* Run Cards */
-.runs-table {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
 .run-card {
   background: var(--surface-bg);
+  margin: var(--space-1);
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-lg);
   overflow: hidden;
   transition: all var(--transition-fast);
+  flex-shrink: 0;
 }
 
 .run-card:hover {
@@ -554,24 +612,6 @@
 }
 
 /* Chart container styles are defined in StatsDisplay.css */
-
-/* Performance Metrics Colors */
-.metric-card:nth-child(1) .metric-icon {
-  background: linear-gradient(135deg, #10b981, #059669);
-}
-
-.metric-card:nth-child(2) .metric-icon {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-}
-
-.metric-card:nth-child(3) .metric-icon {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-}
-
-.metric-card:nth-child(4) .metric-icon {
-  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-}
-
 /* Animations */
 @keyframes slideDown {
   from {
@@ -588,6 +628,295 @@
 
 /* Shimmer animation is defined in LoadingProgress.css */
 
+/* Sub Navigation */
+.sub-nav {
+  display: flex;
+  gap: var(--space-2);
+  background: var(--surface-bg);
+  padding: var(--space-2);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-primary);
+  align-self: flex-start; /* 컨테이너 크기에 맞춰 늘어나지 않도록 */
+}
+
+.sub-nav-tab {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-weight: 500;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  font-size: 0.9rem;
+}
+
+.sub-nav-tab:hover {
+  background: var(--tertiary-bg);
+  color: var(--text-primary);
+}
+
+.sub-nav-tab.active {
+  background: var(--accent-bg);
+  color: white;
+  box-shadow: 0 0 10px rgba(255, 140, 0, 0.3);
+}
+
+.summary-view-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-12);
+  background: var(--surface-bg);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-xl);
+  text-align: center;
+  color: var(--text-muted);
+  min-height: 300px;
+}
+
+.summary-view-placeholder h3 {
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+
+/* Daily Records Styles */
+.daily-records-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.records-section {
+  background: var(--surface-bg);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.records-section .section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.records-section .section-icon {
+  font-size: 1.2rem;
+}
+
+.records-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-4);
+}
+
+.record-card {
+  background: var(--tertiary-bg);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  text-align: center;
+  transition: all var(--transition-normal);
+}
+
+.record-card:hover {
+  background: var(--secondary-bg);
+  border-color: var(--border-secondary);
+  transform: translateY(-2px);
+}
+
+.record-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: var(--space-2);
+  font-weight: 500;
+}
+
+.record-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-1);
+  word-break: break-word;
+}
+
+.record-detail {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  opacity: 0.8;
+}
+
+/* Record Card Color Variants */
+.record-card.best {
+  border-left: 4px solid #10b981;
+}
+
+.record-card.best .record-value {
+  color: #10b981;
+}
+
+.record-card.worst {
+  border-left: 4px solid #ef4444;
+}
+
+.record-card.worst .record-value {
+  color: #ef4444;
+}
+
+.record-card.fast {
+  border-left: 4px solid #3b82f6;
+}
+
+.record-card.fast .record-value {
+  color: #3b82f6;
+}
+
+.record-card.slow {
+  border-left: 4px solid #f59e0b;
+}
+
+.record-card.slow .record-value {
+  color: #f59e0b;
+}
+
+.record-card.expensive {
+  border-left: 4px solid #8b5cf6;
+}
+
+.record-card.expensive .record-value {
+  color: #8b5cf6;
+}
+
+.record-card.lucky {
+  border-left: 4px solid #10b981;
+}
+
+.record-card.lucky .record-value {
+  color: #10b981;
+}
+
+.record-card.unlucky {
+  border-left: 4px solid #6b7280;
+}
+
+.record-card.unlucky .record-value {
+  color: #6b7280;
+}
+
+.record-card.playtime {
+  border-left: 4px solid var(--accent-bg);
+}
+
+.record-card.playtime .record-value {
+  color: var(--accent-bg);
+}
+
+.record-card.break {
+  border-left: 4px solid #06b6d4;
+}
+
+.record-card.break .record-value {
+  color: #06b6d4;
+}
+
+/* Chart and Info Container */
+.chart-info-container {
+  display: flex;
+  gap: var(--space-6);
+  align-items: flex-start;
+}
+
+.basic-info-section {
+  flex: 0 0 300px;
+  background: var(--surface-bg);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  align-self: stretch;
+  padding: var(--space-5);
+}
+
+.basic-info-section .section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.basic-info-section .section-icon {
+  font-size: 1.2rem;
+}
+
+.info-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.info-card {
+  background: var(--tertiary-bg);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  transition: all var(--transition-normal);
+}
+
+.info-card:hover {
+  background: var(--secondary-bg);
+  border-color: var(--border-secondary);
+  transform: translateY(-1px);
+}
+
+.info-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: var(--space-2);
+  font-weight: 500;
+}
+
+.info-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-1);
+  word-break: break-word;
+}
+
+.info-detail {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  opacity: 0.8;
+}
+
+/* Info Card Color Variants */
+.info-card.playtime {
+  border-left: 4px solid var(--accent-bg);
+}
+
+.info-card.playtime .info-value {
+  color: var(--accent-bg);
+}
 
 
- 
+
+.info-card.expensive {
+  border-left: 4px solid #8b5cf6;
+}
+
+.info-card.expensive .info-value {
+  color: #8b5cf6;
+}
+
+.chart-container {
+  flex: 1;
+}

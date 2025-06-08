@@ -4,16 +4,9 @@ import { getVersion } from '@tauri-apps/api/app';
 import './TitleBar.css';
 
 const TitleBar: React.FC = () => {
-  const [isMaximized, setIsMaximized] = useState(false);
   const [appVersion, setAppVersion] = useState('');
 
   useEffect(() => {
-    const checkMaximized = async () => {
-      const window = getCurrentWindow();
-      const maximized = await window.isMaximized();
-      setIsMaximized(maximized);
-    };
-
     const getAppVersion = async () => {
       try {
         const version = await getVersion();
@@ -24,19 +17,12 @@ const TitleBar: React.FC = () => {
       }
     };
 
-    checkMaximized();
     getAppVersion();
   }, []);
 
   const handleMinimize = async () => {
     const window = getCurrentWindow();
     await window.minimize();
-  };
-
-  const handleMaximize = async () => {
-    const window = getCurrentWindow();
-    await window.toggleMaximize();
-    setIsMaximized(!isMaximized);
   };
 
   const handleClose = async () => {
@@ -71,23 +57,6 @@ const TitleBar: React.FC = () => {
           <svg width="10" height="10" viewBox="0 0 10 10">
             <rect x="2" y="4.5" width="6" height="1" fill="currentColor"/>
           </svg>
-        </button>
-        
-        <button 
-          className="titlebar-button maximize-button"
-          onClick={handleMaximize}
-          title={isMaximized ? "복원" : "최대화"}
-        >
-          {isMaximized ? (
-            <svg width="10" height="10" viewBox="0 0 10 10">
-              <rect x="2" y="3" width="5" height="5" stroke="currentColor" strokeWidth="1" fill="none"/>
-              <rect x="3" y="2" width="5" height="5" stroke="currentColor" strokeWidth="1" fill="none"/>
-            </svg>
-          ) : (
-            <svg width="10" height="10" viewBox="0 0 10 10">
-              <rect x="2" y="2" width="6" height="6" stroke="currentColor" strokeWidth="1" fill="none"/>
-            </svg>
-          )}
         </button>
         
         <button 
