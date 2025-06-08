@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Dispatch, SetStateAction } from 'react';
+
 import './Settings.css';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { invoke } from "@tauri-apps/api/core";
@@ -22,12 +22,11 @@ interface AppConfig {
 }
 
 interface SettingsProps {
-  abyssalWindowEnabled: boolean;
-  setAbyssalWindowEnabled: Dispatch<SetStateAction<boolean>>;
+  onSettingsSaved: () => void;
   triggerPopup: (title: string, message: string, type?: "info" | "warning" | "error") => void;
 }
 
-const Settings: React.FC<SettingsProps> = ({ abyssalWindowEnabled, setAbyssalWindowEnabled, triggerPopup }) => {
+const Settings: React.FC<SettingsProps> = ({ onSettingsSaved, triggerPopup }) => {
   const [config, setConfig] = useState<AppConfig>({
     general: {
       log_path: '',
@@ -42,6 +41,7 @@ const Settings: React.FC<SettingsProps> = ({ abyssalWindowEnabled, setAbyssalWin
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const [abyssalWindowEnabled, setAbyssalWindowEnabled] = useState(true);
   const [locationInfo, setLocationInfo] = useState<LocationInfo>({
     current_system: null,
     previous_system: null,
@@ -107,6 +107,7 @@ const Settings: React.FC<SettingsProps> = ({ abyssalWindowEnabled, setAbyssalWin
       await invoke("set_character_name", { characterName: config.general.character_name });
       triggerPopup("설정 저장 완료", "설정이 성공적으로 저장되었습니다.", "info");
       setIsDirty(false);
+      onSettingsSaved(); // Notify parent that settings were saved
     } catch (e) {
       console.error("Failed to save config:", e);
       triggerPopup("저장 실패", `설정 저장에 실패했습니다: ${e}`, "error");
@@ -154,20 +155,7 @@ const Settings: React.FC<SettingsProps> = ({ abyssalWindowEnabled, setAbyssalWin
     }
   };
 
-  const handleOpenLogFile = async () => {
-    if (!logFileInfo) {
-      triggerPopup("로그 파일 없음", "현재 모니터링 중인 로그 파일이 없습니다.", "warning");
-      return;
-    }
-    
-    try {
-      await invoke("open_file_in_system", { filePath: logFileInfo.full_path });
-      triggerPopup("파일 열기", "로그 파일이 시스템 기본 프로그램으로 열렸습니다.", "info");
-    } catch (e) {
-      console.error("Failed to open log file:", e);
-      triggerPopup("파일 열기 실패", `로그 파일 열기에 실패했습니다: ${e}`, "error");
-    }
-  };
+
 
 
 
@@ -215,6 +203,7 @@ const Settings: React.FC<SettingsProps> = ({ abyssalWindowEnabled, setAbyssalWin
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
+        hour12: false,
         timeZone: 'Asia/Seoul'
       });
     } catch {
@@ -222,13 +211,7 @@ const Settings: React.FC<SettingsProps> = ({ abyssalWindowEnabled, setAbyssalWin
     }
   };
 
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
+
 
 
 
@@ -252,7 +235,7 @@ const Settings: React.FC<SettingsProps> = ({ abyssalWindowEnabled, setAbyssalWin
           <div className="section-header">
             <div className="section-icon">⚙️</div>
             <div className="section-info">
-              <h2 className="section-title">🔧 일반 설정</h2>
+              <h2 className="section-title">일반 설정</h2>
               <p className="section-description">기본 애플리케이션 설정 및 환경 설정</p>
             </div>
           </div>
@@ -313,7 +296,7 @@ const Settings: React.FC<SettingsProps> = ({ abyssalWindowEnabled, setAbyssalWin
           <div className="section-header">
             <div className="section-icon">📡</div>
             <div className="section-info">
-              <h2 className="section-title">📡 모니터링 제어</h2>
+              <h2 className="section-title">모니터링 제어</h2>
               <p className="section-description">로그 파일은 항상 모니터링되며, 어비셜 결과 창 표시를 제어할 수 있습니다</p>
             </div>
           </div>
@@ -400,31 +383,17 @@ const Settings: React.FC<SettingsProps> = ({ abyssalWindowEnabled, setAbyssalWin
                 {logFileInfo ? (
                   <div className="location-info">
                     <div className="location-item">
-                      <span className="location-label">📁 파일명:</span>
-                      <span className="location-value" 
-                            onClick={handleOpenLogFile} 
-                            style={{ cursor: 'pointer', textDecoration: 'underline', color: '#4a9eff' }}
-                            title="클릭하여 파일 열기">
-                        {logFileInfo.file_name}
+                      <span className="location-label">📝 파일 이름</span>
+                      <span 
+                        className="location-value log-file-name"
+                        title={logFileInfo?.full_path || '로그 파일을 찾을 수 없습니다.'}
+                      >
+                        {logFileInfo?.file_name || '로그 파일을 찾을 수 없습니다.'}
                       </span>
                     </div>
                     <div className="location-item">
-                      <span className="location-label">📊 파일 크기:</span>
-                      <span className="location-value">
-                        {formatFileSize(logFileInfo.file_size)}
-                      </span>
-                    </div>
-                    <div className="location-item">
-                      <span className="location-label">🕐 수정 시간:</span>
-                      <span className="location-value location-time">
-                        {logFileInfo.modified_time}
-                      </span>
-                    </div>
-                    <div className="location-item">
-                      <span className="location-label">📡 모니터링 상태:</span>
-                      <span className="location-value" style={{ color: logFileInfo.monitoring ? '#4caf50' : '#f44336' }}>
-                        {logFileInfo.monitoring ? '🟢 활성' : '🔴 비활성'}
-                      </span>
+                      <span className="location-label">🔄 마지막 수정</span>
+                      <span className="location-value">{logFileInfo?.modified_time || '정보 없음'}</span>
                     </div>
                   </div>
                 ) : (

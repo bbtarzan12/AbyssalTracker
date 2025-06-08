@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+
 import { parseItems, aggregateItems, ItemIcon, RunTypeBadge } from './utils';
 import ShipClassIcon from './ShipClassIcon';
 import './DailyStatsDisplay.css';
@@ -18,7 +18,6 @@ interface DailyStatsDisplayProps {
 }
 
 const DailyStatsDisplay: React.FC<DailyStatsDisplayProps> = ({
-  df,
   daily_stats,
   item_buy_price_cache,
   selectedDate,
@@ -65,8 +64,6 @@ const DailyStatsDisplay: React.FC<DailyStatsDisplayProps> = ({
   const totalDailyIsk = currentDailyData ? currentDailyData.runs.reduce((sum, run) => sum + run['실수익'], 0) : 0;
   const totalRuns = currentDailyData ? currentDailyData.runs.length : 0;
   const avgProfit = totalRuns > 0 ? totalDailyIsk / totalRuns : 0;
-
-  const filteredDfDaily = df.filter(run => run['날짜'] === selectedDate);
 
   // 각 런의 펼침/접힘 상태를 관리하는 상태
   const [expandedRuns, setExpandedRuns] = useState<Record<number, boolean>>({});
@@ -315,53 +312,7 @@ const DailyStatsDisplay: React.FC<DailyStatsDisplayProps> = ({
         </div>
       </div>
 
-      {/* Performance Chart */}
-      <div className="chart-container">
-        <div className="chart-header">
-          <h3 className="chart-title">📈 일별 성과 트렌드</h3>
-          <p className="chart-subtitle">{selectedDate} 시간대별 ISK 수익 추이</p>
-        </div>
-        <ResponsiveContainer width="100%" height={280}>
-          <AreaChart data={filteredDfDaily} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-            <defs>
-              <linearGradient id="profitGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="var(--accent-bg)" stopOpacity={0.3}/>
-                <stop offset="95%" stopColor="var(--accent-bg)" stopOpacity={0}/>
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-primary)" />
-            <XAxis 
-              dataKey="시작시각(KST)" 
-              stroke="var(--text-muted)" 
-              tick={{ fill: 'var(--text-muted)', fontSize: 12 }}
-              tickFormatter={(value) => value.split(' ')[1]?.substring(0, 5) || ''}
-            />
-            <YAxis 
-              stroke="var(--text-muted)" 
-              tick={{ fill: 'var(--text-muted)', fontSize: 12 }}
-              tickFormatter={(value) => formatISK(value)}
-            />
-            <Tooltip 
-              contentStyle={{
-                backgroundColor: 'var(--surface-bg)',
-                border: '1px solid var(--border-primary)',
-                borderRadius: 'var(--radius-md)',
-                color: 'var(--text-primary)'
-              }}
-              formatter={(value: number) => [`${formatISK(value)}`, '수익']}
-              labelFormatter={(label) => `시간: ${label.split(' ')[1]}`}
-            />
-            <Area 
-              type="monotone" 
-              dataKey="실수익" 
-              stroke="var(--accent-bg)" 
-              fillOpacity={1} 
-              fill="url(#profitGradient)"
-              strokeWidth={2}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
+
     </div>
   );
 };
